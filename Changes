@@ -1,0 +1,10 @@
+0.03
+	Add account details to BoI
+	Clean up somewhat for release
+
+0.02
+	Converted BankOfIreland.pm to use WWW::Mechanize
+	MBNA.pm now handles the occasional Update Your E-Mail Address page
+
+0.01
+	Initial version

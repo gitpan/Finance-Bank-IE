@@ -1,0 +1,18 @@
+Bank Of Ireland and MBNA Ireland (actually MBNA Europe) online banking
+access, based on existing Finance::Banking interface.
+
+Finance::Bank::IE::BankOfIreland supports check_balance and
+account_details methods. Finance::Bank::IE::MBNA supports the
+check_balance method.
+
+MBNA check_balance takes a username & password. BoI check_balance
+takes a hash containing user => username, pin => 6-digit PIN, contact
+=> last four digits of contact number, dob => date of birth in
+DD/MM/YYYY format.
+
+check_balance for both returns the account number, the currency, and
+the balance, since that's all I get to work with from the
+websites. Also, the account numbers are only partial. MBNA account
+info also includes a 'minimum due' field, currently ripped straight
+off the page and stashed in $_->{min} in the form "<amt> due by
+<date>".

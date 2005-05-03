@@ -1,0 +1,10 @@
+lib/Finance/Bank/IE/BankOfIreland.pm
+lib/Finance/Bank/IE/MBNA.pm
+Changes
+Makefile.PL
+MANIFEST
+README
+test.pl
+example.pl
+TODO
+META.yml                                 Module meta-data (added by MakeMaker)
