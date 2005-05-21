@@ -4,7 +4,7 @@
 #
 package Finance::Bank::IE::BankOfIreland;
 
-our $VERSION = "0.03";
+our $VERSION = "0.04";
 
 my $BASEURL = "https://www.365online.com/";
 
@@ -12,6 +12,8 @@ use WWW::Mechanize;
 use HTML::TokeParser;
 use strict;
 use Carp;
+use Date::Parse;
+use POSIX;
 use Data::Dumper;
 
 # package-local variable
@@ -272,7 +274,20 @@ sub parse_details {
             if ( $copy[0] =~ /^\s*$/ ) {
                 $copy[0] = $lastdate;
             }
-            $lastdate = $copy[0];
+
+            # Convert the date to something useful
+            my ( $d, $m, $y ) = $copy[0] =~ /(\d+).(\w+).(\d+)/;
+            my $t = str2time( "$d/$m/$y" );
+            if ( defined( $t )) {
+                $lastdate = strftime( "%d-%b-%Y", localtime( $t ));
+                #print STDERR $copy[0] . " <-> " . $lastdate . "\n";
+                $copy[0] = $t;
+            } else {
+                carp( "failed to parse $d/$m/$y" );
+                $copy[0] = "$d-$m-$y";
+                $lastdate = $copy[0];
+            }
+
 
             # patch in missing values for dr/cr
             for my $i ( -2, -3 ) {
