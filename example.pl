@@ -23,7 +23,7 @@ foreach ( @accounts ) {
 
 # display recent activity
 foreach ( @accounts ) {
-    my @activity = Finance::Bank::IE::BankOfIreland->account_details( $_ );
+    my @activity = Finance::Bank::IE::BankOfIreland->account_details( $_->{account_no} );
     for my $line ( @activity ) {
         my @cols = @{$line};
         # cols are date, comment, dr, cr, balance

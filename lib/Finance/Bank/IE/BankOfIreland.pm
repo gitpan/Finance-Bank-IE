@@ -4,7 +4,7 @@
 #
 package Finance::Bank::IE::BankOfIreland;
 
-our $VERSION = "0.04";
+our $VERSION = "0.05";
 
 my $BASEURL = "https://www.365online.com/";
 

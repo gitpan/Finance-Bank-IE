@@ -5,7 +5,7 @@
 #
 package Finance::Bank::IE::MBNA;
 
-our $VERSION = "0.04";
+our $VERSION = "0.05";
 
 use strict;
 use WWW::Mechanize;
@@ -13,21 +13,33 @@ use HTML::TokeParser;
 use HTML::Entities;
 use Carp;
 
-sub check_balance {
-    my @accounts;
-    my ( $user, $password ) = @_;
-    my %config;
-    my @cards;
+# package-local
+my $agent;
+my %cached_config;
+
+# attempt to log in
+# returns a logged-in WWW::Mechanize object, or undef
+sub login {
+    my ( $self, $confref ) = @_;
+
+    $confref ||= \%cached_config;
+
+    my ( $user, $password ) = ( $confref->{user}, $confref->{password} );
 
     if ( !defined( $user ) or !defined( $password )) {
-        croak( "check_balance requires a username and password" );
+        croak( "login requires a username and password" );
     }
 
-    my $agent = WWW::Mechanize->new( env_proxy => 1, autocheck => 1 );
-    $agent->env_proxy;
+    $cached_config{user} = $user;
+    $cached_config{password} = $password;
 
-    $agent->quiet( 0 );
-    $agent->agent_alias( 'Windows IE 6' );
+    if ( !defined( $agent )) {
+        $agent = WWW::Mechanize->new( env_proxy => 1, autocheck => 1 );
+        $agent->env_proxy;
+
+        $agent->quiet( 0 );
+        $agent->agent_alias( 'Windows IE 6' );
+    }
 
     my $res = $agent->get( 'https://www.bankcardservices.co.uk/' );
 
@@ -67,76 +79,105 @@ sub check_balance {
         if ( $c =~ /The user name-password combination you entered is not valid/si ) {
             print STDERR "Params: " . join( ":", @_ ) . "\n";
 
-            carp( "Incorrect login/password\n" );
+            carp( "Incorrect username/password\n" );
             return undef;
         } elsif ( $c =~ /update your e-mail address/si ){
+            # this assumes your email address is (a) set and (b) correct
             $res = $agent->submit_form();
             goto RETRY;
-        } elsif ( $c =~ /Please select one/ ) {
-            # woo, you've got multiple accounts...
-            @cards =
-              $agent->find_all_links( url_regex => qr/AccountSnapshotScreen/ );
+        } elsif ( $c !~ /Please select one/ ) {
+            # we failed for some reason
+            open( DUMP, ">" . $ENV{HOME} . "/mbna.dump" );
+            print DUMP $c;
+            close( DUMP );
+            croak( "Failed to log in for unknown reason, check ~/mbna.dump" );
+        }
+    }
 
-            if ( @cards ) {
-                # uniquify it
-                my %cards;
-                for my $ca ( @cards ) {
-                    $cards{$ca->url_abs} = $ca;
+    return $agent;
+}
+
+sub check_balance {
+    my ( $self, $confref ) = @_;
+    my @accounts;
+    my @cards;
+
+    # temporary
+    if ( ref( $confref ) ne "HASH" ) {
+        croak( "sorry, API change" );
+    }
+
+    $self->login( $confref ) or return;
+
+    my $c = $agent->content;
+    if ( $c =~ /Please select one/ ) {
+        # woo, you've got multiple accounts...
+        @cards =
+          $agent->find_all_links( url_regex => qr/AccountSnapshotScreen/ );
+
+        if ( @cards ) {
+            # uniquify it
+            my %cards;
+            for my $ca ( @cards ) {
+                $cards{$ca->url_abs} = $ca;
+            }
+            @cards = ();
+#            $res = $agent->get( $card->url_abs());
+#            goto RETRY;
+            for my $card ( values %cards ) {
+                my $res = $agent->get( $card->url_abs());
+                if ( $res->is_success()) {
+                    push @cards, $agent->content;
                 }
-                @cards = values %cards;
-                my $card = shift @cards;
-                $res = $agent->get( $card->url_abs());
-                goto RETRY;
             }
         }
-
-        # otherwise we failed for some other reason
-        open( DUMP, ">" . $ENV{HOME} . "/mbna.dump" );
-        print DUMP $c;
-        close( DUMP );
-        croak( "Failed to log in for unknown reason, check ~/mbna.dump" );
+    } else {
+        push @cards, $c;
     }
 
-    # The account number, ish
-    my $account = get_cell_after( \$c, ".*card" );
-    my $space = get_cell_after( \$c, "available for cash or purchases" );
-    my $balance = get_cell_after( \$c, "outstanding balance", 4 );
-    my $unposted = get_cell_after( \$c, "unposted transactions" );
-    my $min = get_cell_after( \$c, "total minimum payment" );
-    my $currency = get_cell_after( \$c, "^Amount", 0 );
+    for my $c ( @cards ) {
+        # The account number, ish
+        my $account = get_cell_after( \$c, ".*card" );
+        my $space = get_cell_after( \$c, "available for cash or purchases" );
+        my $balance = get_cell_after( \$c, "outstanding balance", 4 );
+        my $unposted = get_cell_after( \$c, "unposted transactions" );
+        my $min = get_cell_after( \$c, "total minimum payment" );
+        my $currency = get_cell_after( \$c, "^Amount", 0 );
 
-    $currency =~ s/Amount \((.*)\)$/$1/;
+        # clean out any euro signs
+        $space =~ s/^.*?(\d+)/$1/;
+        $balance =~ s/^.*?(\d+)/$1/;
+        $unposted =~ s/^.*?(\d+)/$1/;
+        $min =~ s/^.*?(\d+)/$1/;
 
-    # currency will be returned as a HTML entity!
-    $currency = decode_entities( $currency );
-    # err.
-    if ( $currency eq "&#8364;" ) {
-        $currency = "EUR";
+        $currency =~ s/Amount \((.*)\)$/$1/;
+
+        # currency may be returned as a HTML entity!
+        $currency = decode_entities( $currency );
+        # err.
+        if ( $currency eq "&#8364;" or $currency eq "\x{20ac}" ) {
+            $currency = "EUR";
+        }
+
+        $balance ||= "unavailable";
+        $space ||= "unavailable";
+        $unposted ||= "unavailable";
+        $min ||= 0;
+
+        # pass back what we found as an array of accounts.
+        my $ac =bless {
+                       account_no => $account,
+                       currency => $currency,
+                       balance => $balance,
+                       space => $space,
+                       unposted => $unposted,
+                       min => $min,
+                      }, "Finance::Bank::IE::MBNA::Account";
+        push @accounts, $ac;
     }
 
-    $balance ||= "unavailable";
-    $space ||= "unavailable";
-    $unposted ||= "unavailable";
-    $min ||= 0;
-
-    # pass back what we found as an array of accounts.
-    my $ac =bless {
-                   account_no => $account,
-                   currency => $currency,
-                   balance => $balance,
-                   space => $space,
-                   unposted => $unposted,
-                   min => $min,
-                  }, "Finance::Bank::IE::MBNA::Account";
-    push @accounts, $ac;
-
-    # get more cards. going all the way back to RETRY is a little
-    # excessive, but it'll do.
-    if ( @cards ) {
-        my $card = shift @cards;
-        $res = $agent->get( $card->url_abs());
-        goto RETRY;
-    }
+    # go to the statements page:
+    #https://www.bankcardservices.co.uk/NASApp/NetAccessXX/RecentStatementsScreen?acctID=...
 
     @accounts;
 }

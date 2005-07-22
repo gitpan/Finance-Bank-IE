@@ -1,3 +1,8 @@
+0.05
+	Fix example program to match API!
+	Remove currency from numeric fields in MBNA.pm
+	Handle unicode as well as encoded euro sign in MBNA.pm
+
 0.04
 	Fix up Makefile with prereqs
 	Parse date in BoI statement and return as unix time
