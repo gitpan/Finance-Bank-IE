@@ -2,7 +2,7 @@
   - clean account details
     - return date as a unix date
     - put sane values in blank fields
-  - payments / transfers
+  - payments
 
 * MBNA
   - clean up 'due by' text

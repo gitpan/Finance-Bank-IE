@@ -1,3 +1,7 @@
+0.06
+	Add transfer_funds function to BoI code
+	Update example program to show transfer_funds function
+
 0.05
 	Fix example program to match API!
 	Remove currency from numeric fields in MBNA.pm

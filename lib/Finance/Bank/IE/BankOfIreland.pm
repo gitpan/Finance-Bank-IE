@@ -4,7 +4,7 @@
 #
 package Finance::Bank::IE::BankOfIreland;
 
-our $VERSION = "0.05";
+our $VERSION = "0.06";
 
 my $BASEURL = "https://www.365online.com/";
 
@@ -109,6 +109,7 @@ sub check_balance {
     my $self = shift;
     my $confref = shift;
 
+    $confref ||= \%cached_config;
     $self->login_dance( $confref ) or return;
 
     # Banking frameset:
@@ -163,6 +164,7 @@ sub account_details {
     my $account = shift;
     my $confref = shift;
 
+    $confref ||= \%cached_config;
     login_dance( $confref ) or return;
 
     # Banking frameset:
@@ -303,6 +305,106 @@ sub parse_details {
     shift @header;
 
     return \@header, \@lines;
+}
+
+sub funds_transfer {
+    my $self = shift;
+    my $account_from = shift;
+    my $account_to = shift;
+    my $internal = 0;
+    my $amount = shift;
+    my $confref = shift;
+
+    $confref ||= \%cached_config;
+    login_dance( $confref ) or return;
+
+    # allow passing in of account objects
+    if ( ref $account_from eq "HASH" and defined( $account_from->{nick} )) {
+        $account_from = $account_from->{nick};
+    }
+
+    if ( ref $account_to eq "HASH" and defined( $account_to->{nick} )) {
+        $account_to = $account_to->{nick};
+    }
+
+    # check if account_to is present
+    if ( $agent->find_link( text => $account_to )) {
+        $internal = 1;
+    }
+
+    $agent->follow_link( text => $account_from )
+      or croak( "Couldn't follow link to account $account_from" );
+
+    $agent->follow_link( url_regex => qr/^navbar.htm/ )
+      or croak( "Couldn't load navbar" );
+
+    $agent->follow_link( text => "Money transfer" )
+      or croak( "Couldn't load money transfer" );
+
+    # fork here!
+    if ( $internal ) {
+        $agent->follow_link( text => "To Your Accounts" )
+          or croak( "Couldn't load Your Accounts" );
+
+        # GAH. Instead of having a nice option list, there's a bunch
+        # of checkboxes, with attendant text.
+        my $c = $agent->content;
+        my $parser = new HTML::TokeParser( \$c );
+        my $val;
+        while ( my $tag = $parser->get_tag( "input" )) {
+            next unless (( $tag->[1]{name}||"" ) eq "row2" );
+            my $ftag = $parser->get_tag( "font" );
+            my $name = $parser->get_trimmed_text( "/font" );
+
+            if ( $name =~ /\b$account_to$/ ) {
+                $val = $tag->[1]{value};
+                last;
+            }
+        }
+
+        if ( !defined( $val )) {
+            croak( "Unable to find $account_to in list of accounts" );
+        }
+
+        $agent->submit_form(
+                            form_name => 'send',
+                            fields => {
+                                       row2 => $val,
+                                       amount => $amount,
+                                      },
+                            button => 'Proceed'
+                           ) or croak( "Form submit failed" );
+
+        $agent->save_content( "gah.html" );
+    } else {
+        $agent->follow_link( text => "To Other Accounts" )
+          or croak( "Couldn't load Other Accounts" );
+
+        $agent->submit_form(
+                            form_name => 'send',
+                            fields => {
+                                       row2 => $account_to,
+                                       amount => $amount,
+                                      },
+                            button => 'Proceed'
+                           )
+          or croak( "Form submit failed" );
+    }
+    # post-fork!
+
+    my $form = $agent->current_form();
+    for my $pd ( 1..3 ) {
+        my $field = $form->find_input( "PIN_Digit_" . $pd );
+        my $idx = $field->value;
+        $form->find_input( "PIN_Val_" . $pd )->readonly( 0 );
+        $agent->field( "PIN_Val_" . $pd,
+                       substr( $confref->{pin}, $idx -1 , 1 ));
+    }
+    $agent->submit_form() or
+      croak( "Payment confirm failed" );
+
+    # return the 'receipt'
+    return $agent->content;
 }
 
 package Finance::Bank::IE::BankOfIreland::Account;

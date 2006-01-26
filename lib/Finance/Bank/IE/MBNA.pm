@@ -5,7 +5,7 @@
 #
 package Finance::Bank::IE::MBNA;
 
-our $VERSION = "0.05";
+our $VERSION = "0.06";
 
 use strict;
 use WWW::Mechanize;
