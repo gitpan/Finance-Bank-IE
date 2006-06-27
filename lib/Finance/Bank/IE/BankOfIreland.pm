@@ -4,7 +4,36 @@
 #
 package Finance::Bank::IE::BankOfIreland;
 
-our $VERSION = "0.06";
+our $VERSION = "0.07";
+
+# headers for account summary page
+use constant {
+    BALANCE  => "Balance Information: Balance",
+      ACCTTYPE => "Account Type",
+        NICKNAME => "Nickname Information: Nickname",
+          CURRENCY => "Currency",
+            ACCTNUM  => "Account Number",
+  };
+
+# headers for transaction list page
+use constant {
+	DATE => "Date",
+      DETAIL => "Details",
+        DEBIT => "Debit",
+          CREDIT => "Credit",
+            DETBAL => "Balance Information: Balance",
+};
+
+# headers for payments page
+use constant {
+    BENNAME => 'Beneficiary Name Information: Beneficiary Name',
+      BENACCT => 'Account Number',
+        BENNSC =>
+          'National Sort Code (NSC) Information: National Sort Code (NSC)',
+            BENREF => 'Reference Number Information: Reference Number',
+              BENDESC =>
+                'Beneficiary Description Information: Beneficiary Description',
+            };
 
 my $BASEURL = "https://www.365online.com/";
 
@@ -68,7 +97,8 @@ sub login_dance {
         croak( "Failed to get login page" );
     }
 
-    $agent->form_name( "usid" );
+    # helpfully, BoI removed the form name, so we're going to rely on
+    # it being the only form on the page for now.
     $agent->field( "USER", $confref->{user} );
     my $form = $agent->current_form();
     my $field = $form->find_input( "Password_1" );
@@ -126,34 +156,46 @@ sub check_balance {
     my $summary = $res->content;
     my $parser = new HTML::TokeParser( \$summary );
 
-    my $step = 0;
-    my @accounts;
-    my @account;
-    while ( my $token = $parser->get_tag( "td" )) {
-        my $text = $parser->get_trimmed_text( "/td" );
-        if ( $step == 0 ) {
-            next unless $text =~ /Current|Savings/; # xxx skip credit cards
-            $step = 1;
-            @account = ( $text );
+    my ( @accounts, %account, @headings );
+    my ( $getheadings, $col ) = ( 1, 0 );
+
+    while( my $tag = $parser->get_tag( "td", "th",  "/tr" )) {
+        if ( $tag->[0] eq "/tr" ) {
+            if ( $getheadings ) {
+                carp( "Did not find expected headings" ) unless
+                  grep BALANCE, @headings and
+                    grep ACCTTYPE, @headings and
+                      grep NICKNAME, @headings and
+                        grep CURRENCY, @headings and
+                          grep ACCTNUM, @headings;
+            }
+            $getheadings = 0;
+            $col = 0;
+            if ( %account and $account{+ACCTTYPE} ne ACCTTYPE ) {
+                $account{+BALANCE} = undef if
+                  $account{+BALANCE} eq "Unavailable";
+                push @accounts,
+                  bless {
+                         type => delete $account{+ACCTTYPE},
+                         nick => delete $account{+NICKNAME},
+                         account_no => delete $account{+ACCTNUM},
+                         currency => delete $account{+CURRENCY},
+                         balance => delete $account{+BALANCE},
+                        }, "Finance::Bank::IE::BankOfIreland::Account";
+            }
             next;
         }
 
-        if ( $step ) {
-            push @account, $text;
-            $step++;
-            if ( $step == 9 ) {
-                $account[8] =~ s/[^0-9.-]//g;
-                push @accounts,
-                  bless {
-                         type => $account[0],
-                         nick => $account[2],
-                         account_no => $account[4],
-                         currency => $account[6],
-                         balance => $account[8],
-                        }, "Finance::Bank::IE::BankOfIreland::Account";
-                $step = 0;
-            }
+        my $text = $parser->get_trimmed_text( "/" . $tag->[0] );
+        $text =~ s/\xa0//; # nbsp, I guess
+
+        if ( $getheadings ) {
+            push @headings, $text;
+            next;
         }
+
+        $account{$headings[$col]} = $text if $headings[$col];
+        $col++;
     }
 
     return @accounts;
@@ -220,98 +262,83 @@ sub account_details {
     return @activity;
 }
 
+#
+# Parse the transaction listing page into an array ref
+#
 sub parse_details {
     my $self = shift;
     my $content = shift;
     my $parser = new HTML::TokeParser( $content );
 
-    # header
-    $parser->get_tag( "table" );
-    $parser->get_tag( "/table" );
+    my ( @lines, %line, @headings );
+    my ( $getheadings, $col ) = ( 1, 0 );
 
-    # find the account details table
-    $parser->get_tag( "table" );
-
-    my @lines;
-    my @line;
-    my @header;
-
-    # we're expecting the Date to be the first header.
-    my $lastdate = "";
-
-    while ( my $token = $parser->get_token ) {
-        last if ( $token->[0] eq "E" and $token->[1] eq "table" );
-        if ( $token->[0] eq "S" ) {
-            if ( $token->[1] eq "th" ) {
-                push @header, $parser->get_trimmed_text( "/th" );
+    while( my $tag = $parser->get_tag( "td", "th", "/tr" )) {
+        if ( $tag->[0] eq "/tr" ) {
+            if ( $getheadings ) {
+                # sanity check
+                carp( "Did not find expected headings" ) unless
+                  grep DETAIL, @headings and
+                    grep DATE, @headings and
+                      grep CREDIT, @headings and
+                        grep DEBIT, @headings and
+                          grep DETBAL, @headings;
             }
-            if ( $token->[1] eq "td" ) {
-                push @line, $parser->get_trimmed_text( "/td" );
+            $getheadings = 0;
+            $col = 0;
+
+            if ( $line{+DETAIL}||"" ) {
+                # fixups
+                $line{+DATE} ||= $lines[-1]->[0] if @lines;
+                $line{+DATE} ||= ""; # triggers failure
+                $line{+DEBIT} ||= "0.00";
+                $line{+CREDIT} ||= "0.00";
+                $line{+DETBAL} ||= ( @lines ? $lines[-1]->[-1] : 0 ) +
+                  $line{+CREDIT} - $line{+DEBIT};
+
+                # now convert the date to unix time
+                my ( $d, $m, $y ) = $line{+DATE} =~ /(\d+).(\w+).(\d+)/;
+                my $t = str2time( "$d/$m/$y" ) if defined( $d ) and
+                  defined( $m ) and defined( $y );
+                if ( defined( $t )) {
+                    $line{+DATE} = strftime( "%d-%b-%Y", localtime( $t ));
+                } else {
+                    carp( "Date format changed to " . $line{+DATE} );
+                }
+                push @lines,
+                  [
+                   delete $line{+DATE},
+                   delete $line{+DETAIL},
+                   delete $line{+DEBIT},
+                   delete $line{+CREDIT},
+                   delete $line{+DETBAL},
+                  ];
             }
-        } elsif ( $token->[0] eq "E" and $token->[1] eq "tr" ) {
-            # skip blanks
-            next unless $#line > -1;
-
-            # skip currency header
-            if ( $line[-1] eq "EUR" or $#line < 4 ) {
-                $#line = -1;
-                next;
-            }
-
-            # fixup. I hate BOI's HTML
-            shift @line; # blank at start
-
-            # seems to be extra space on the first line - might be
-            # crap code on my part.
-            if ( $#lines == -1 ) {
-                shift @line;
-                shift @line;
-                shift @line;
-            }
-
-            my @copy = @line;
-            $#line = -1;
-
-            # patch in the date from the previous line if necessary
-            if ( $copy[0] =~ /^\s*$/ ) {
-                $copy[0] = $lastdate;
-            }
-
-            # Convert the date to something useful
-            my ( $d, $m, $y ) = $copy[0] =~ /(\d+).(\w+).(\d+)/;
-            my $t = str2time( "$d/$m/$y" );
-            if ( defined( $t )) {
-                $lastdate = strftime( "%d-%b-%Y", localtime( $t ));
-                #print STDERR $copy[0] . " <-> " . $lastdate . "\n";
-                $copy[0] = $t;
-            } else {
-                carp( "failed to parse $d/$m/$y" );
-                $copy[0] = "$d-$m-$y";
-                $lastdate = $copy[0];
-            }
-
-
-            # patch in missing values for dr/cr
-            for my $i ( -2, -3 ) {
-                $copy[$i] ||= "0.00";
-            }
-
-            push @lines, \@copy;
-        } else {
+            next;
         }
+
+        my $text = $parser->get_trimmed_text( "/" . $tag->[0] );
+        $text =~ s/\xa0/ /g;
+
+        if ( $getheadings ) {
+            push @headings, $text;
+            next;
+        }
+
+        $line{$headings[$col]} = $text if $headings[$col];
+        $col++;
     }
 
-    # there's a blank at the start of the header
-    shift @header;
+    # clean up headings
+    @headings = grep !/^\s*$/, @headings;
 
-    return \@header, \@lines;
+    return \@headings, \@lines;
 }
 
 sub funds_transfer {
     my $self = shift;
     my $account_from = shift;
     my $account_to = shift;
-    my $internal = 0;
     my $amount = shift;
     my $confref = shift;
 
@@ -327,70 +354,38 @@ sub funds_transfer {
         $account_to = $account_to->{nick};
     }
 
-    # check if account_to is present
-    if ( $agent->find_link( text => $account_to )) {
-        $internal = 1;
-    }
-
     $agent->follow_link( text => $account_from )
       or croak( "Couldn't follow link to account $account_from" );
 
     $agent->follow_link( url_regex => qr/^navbar.htm/ )
       or croak( "Couldn't load navbar" );
 
-    $agent->follow_link( text => "Money transfer" )
+    $agent->follow_link( text => "Money Transfer" )
       or croak( "Couldn't load money transfer" );
 
-    # fork here!
-    if ( $internal ) {
-        $agent->follow_link( text => "To Your Accounts" )
-          or croak( "Couldn't load Your Accounts" );
+    #
+    # June 2006 update: all payments are on the one page, listed as
+    # 'beneficiaries' And instead of having a nice option list,
+    # there's a bunch of checkboxes, with attendant text.
+    my $beneficiaries = $self->parse_beneficiaries( $agent->content );
 
-        # GAH. Instead of having a nice option list, there's a bunch
-        # of checkboxes, with attendant text.
-        my $c = $agent->content;
-        my $parser = new HTML::TokeParser( \$c );
-        my $val;
-        while ( my $tag = $parser->get_tag( "input" )) {
-            next unless (( $tag->[1]{name}||"" ) eq "row2" );
-            my $ftag = $parser->get_tag( "font" );
-            my $name = $parser->get_trimmed_text( "/font" );
-
-            if ( $name =~ /\b$account_to$/ ) {
-                $val = $tag->[1]{value};
-                last;
-            }
-        }
-
-        if ( !defined( $val )) {
-            croak( "Unable to find $account_to in list of accounts" );
-        }
-
-        $agent->submit_form(
-                            form_name => 'send',
-                            fields => {
-                                       row2 => $val,
-                                       amount => $amount,
-                                      },
-                            button => 'Proceed'
-                           ) or croak( "Form submit failed" );
-
-        $agent->save_content( "gah.html" );
-    } else {
-        $agent->follow_link( text => "To Other Accounts" )
-          or croak( "Couldn't load Other Accounts" );
-
-        $agent->submit_form(
-                            form_name => 'send',
-                            fields => {
-                                       row2 => $account_to,
-                                       amount => $amount,
-                                      },
-                            button => 'Proceed'
-                           )
-          or croak( "Form submit failed" );
+    my $val;
+    for my $bene ( @{$beneficiaries}) {
+        $val = $bene->[-1] if ( $bene->[0] ||'' ) eq $account_to;
+        $val = $bene->[-1] if ( $bene->[1] ||'' ) eq $account_to;
+        last if $val;
     }
-    # post-fork!
+
+    if ( !defined( $val )) {
+        croak( "Unable to find $account_to in list of accounts" );
+    }
+
+    $agent->submit_form(
+                        fields => {
+                                   rd_pay_cancel => $val,
+                                   txt_pay_amount => $amount,
+                                  },
+                       ) or croak( "Form submit failed" );
 
     my $form = $agent->current_form();
     for my $pd ( 1..3 ) {
@@ -405,6 +400,82 @@ sub funds_transfer {
 
     # return the 'receipt'
     return $agent->content;
+}
+
+#
+# Parse the beneficiaries page. Returns a ref of data (containing some
+# undefs) which ties a nickname and an account number to a setting for
+# the rd_pay_cancel radiobutton.
+#
+sub parse_beneficiaries {
+    my $self = shift;
+    my $content = shift;
+
+    my $parser = new HTML::TokeParser( \$content );
+
+    my ( @lines, %line, @headings );
+    my ( $getheadings, $col ) = ( 1, 0 );
+
+    # first table is the 'from' account
+    my $tag = $parser->get_tag( "table" );
+
+    # second is the one we're looking for
+    $tag = $parser->get_tag( "table" );
+
+    while ( my $tag = $parser->get_tag( "td", "th", "/tr" )) {
+        if ( $tag->[0] eq "/tr" ) {
+            if ( $getheadings ) {
+                # sanity check
+            }
+            $getheadings = 0;
+            $col = 0;
+
+            # now convert the date
+            push @lines,
+              [
+               delete $line{+BENNAME},
+               delete $line{+BENACCT},
+               delete $line{+BENNSC},
+               delete $line{+BENREF},
+               delete $line{+BENDESC},
+              ];
+            next;
+        }
+
+        my $text = $parser->get_trimmed_text( "/" . $tag->[0] );
+        $text =~ s/\xa0/ /g;
+
+        if ( $getheadings ) {
+            push @headings, $text;
+            next;
+        }
+
+        $line{$headings[$col]} = $text if $headings[$col];
+        $col++;
+    }
+
+    # reset the parser and pull the inputs
+    $parser = new HTML::TokeParser( \$content );
+
+    # first table is the 'from' account
+    $tag = $parser->get_tag( "table" );
+
+    # second is the one we're looking for
+    $tag = $parser->get_tag( "table" );
+
+    my $line = 0;
+    my $input;
+    while ( my $tag = $parser->get_tag( "/tr", "input" )) {
+        if ( $tag->[0] eq "/tr" ) {
+            push @{$lines[$line]}, $input->[1]->{value};
+            $input = undef;
+            $line++;
+        } else {
+            $input = $tag;
+        }
+    }
+
+    \@lines;
 }
 
 package Finance::Bank::IE::BankOfIreland::Account;

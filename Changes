@@ -1,3 +1,6 @@
+0.07
+	Update to match new BoI layout (changed June 20th or so)
+
 0.06
 	Add transfer_funds function to BoI code
 	Update example program to show transfer_funds function
