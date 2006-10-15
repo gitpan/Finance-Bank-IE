@@ -1,14 +1,9 @@
 * BOI
-  - clean account details
-    - return date as a unix date
-    - put sane values in blank fields
-  - payments
 
 * MBNA
   - clean up 'due by' text
   - see if there's a better way to parse the page
   - retrieve .csv or other statements
-  - retrieve account details in a similar fashion to BOI
 
 * Both modules
   - tests!

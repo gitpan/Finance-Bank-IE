@@ -1,21 +1,31 @@
 #!/usr/bin/perl -w
 #
-# Interface to MBNA's website (credit cards only, and only one credit
-# card at that)
+# Interface to MBNA's website
 #
 package Finance::Bank::IE::MBNA;
 
-our $VERSION = "0.07";
+our $VERSION = "0.08";
 
 use strict;
 use WWW::Mechanize;
 use HTML::TokeParser;
 use HTML::Entities;
+use POSIX;
 use Carp;
 
 # package-local
 my $agent;
 my %cached_config;
+
+# fields in detail listing
+use constant {
+    TXDATE => 1,
+      POSTDATE => 3,
+        MCC => 5,
+          DESC => 7,
+            AMT => 9,
+              CRED => 11,
+};
 
 # attempt to log in
 # returns a logged-in WWW::Mechanize object, or undef
@@ -122,8 +132,7 @@ sub check_balance {
                 $cards{$ca->url_abs} = $ca;
             }
             @cards = ();
-#            $res = $agent->get( $card->url_abs());
-#            goto RETRY;
+
             for my $card ( values %cards ) {
                 my $res = $agent->get( $card->url_abs());
                 if ( $res->is_success()) {
@@ -147,7 +156,20 @@ sub check_balance {
         # clean out any euro signs
         $space =~ s/^.*?(\d+)/$1/;
         $balance =~ s/^.*?(\d+)/$1/;
-        $unposted =~ s/^.*?(\d+)/$1/;
+
+        if ( $balance =~ s/CR// ) {
+            # lucky you, you're in credit, so we'll leave it as-is
+        } else {
+            $balance = -$balance;
+        }
+
+        if ( $unposted =~ s/^.*?(\d+)/$1/ ) {
+            # your balance is not complete, but that's ok
+        } else {
+            # no unposted items, let's make sure it's not text
+            $unposted = 0;
+        }
+
         $min =~ s/^.*?(\d+)/$1/;
 
         $currency =~ s/Amount \((.*)\)$/$1/;
@@ -159,9 +181,6 @@ sub check_balance {
             $currency = "EUR";
         }
 
-        $balance ||= "unavailable";
-        $space ||= "unavailable";
-        $unposted ||= "unavailable";
         $min ||= 0;
 
         # pass back what we found as an array of accounts.
@@ -180,6 +199,71 @@ sub check_balance {
     #https://www.bankcardservices.co.uk/NASApp/NetAccessXX/RecentStatementsScreen?acctID=...
 
     @accounts;
+}
+
+sub account_details {
+    my ( $self, $account, $confref ) = @_;
+
+    $self->login( $confref );
+    my $c = $agent->content;
+    if ( $c =~ /Please select one/ ) {
+        my @cards =
+          $agent->find_all_links( url_regex => qr /AccountSnapshotScreen/ );
+        if ( @cards ) {
+            my $found = 0;
+            for my $ca ( @cards ) {
+                if ( $ca->text eq $account ) {
+                    $found = $ca;
+                    last;
+                }
+            }
+            croak( "no such account $account" ) unless $found;
+
+            my $res = $agent->get( $found->url_abs());
+            if ( !$res->is_success()) {
+                croak( "failed to get detail page for $account" );
+            }
+        }
+    }
+
+    # one way or another, we're on the right page now
+    $c = $agent->content;
+    my $parser = new HTML::TokeParser( \$c );
+
+    my @activity;
+    push @activity,
+      [ "Transaction Date", "Posting Date", "MCC", "Description", "Debit", "Credit" ];
+    my @line;
+    while ( my $tag = $parser->get_tag( "td", "/tr" )) {
+        if ( $tag->[0] eq "/tr" ) {
+            if ( @line ) {
+                # clean up the data a bit
+                my ( $d, $m, $y ) = split( /\//, $line[TXDATE]);
+                $line[TXDATE] = mktime( 0, 0, 0, $d, $m - 1, $y - 1900 );
+                ( $d, $m, $y ) = split( /\//, $line[POSTDATE] );
+                $line[POSTDATE] = mktime( 0, 0, 0, $d, $m - 1, $y - 1900 );
+                $line[AMT] =~ s/\x{20ac}//;
+                $line[MCC] =~ s/^\s+$//;
+
+                push @activity,
+                  [
+                   $line[TXDATE],
+                   $line[POSTDATE],
+                   $line[MCC],
+                   $line[DESC],
+                   $line[CRED] eq "CR" ? 0 : $line[AMT],
+                   $line[CRED] eq "CR" ? $line[AMT] : 0,
+                  ];
+
+                @line = ();
+            }
+            next;
+        }
+        next unless ( $tag->[1]{class}||"" ) =~ /^txn(Hi|Lo)$/;
+        push @line, $parser->get_trimmed_text( "/td" );
+    }
+
+    return @activity;
 }
 
 sub get_cell_after {

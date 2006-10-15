@@ -4,7 +4,7 @@
 #
 package Finance::Bank::IE::BankOfIreland;
 
-our $VERSION = "0.07";
+our $VERSION = "0.08";
 
 # headers for account summary page
 use constant {
@@ -131,6 +131,28 @@ sub login_dance {
         croak( "Login failed: we didn't get the Ha_Det page" );
     }
 
+    # We need to check for the phishing page, because otherwise we're not
+    # going to get any further info. Let's follow the Ha_Det link first.
+    my ( $loc ) = $page =~ /Ha_Det.*location.href="\/?(.*?)"/s;
+	$loc =~ s/$BASEURL//; # just in case. should really use URI to frob this.
+	$res = $agent->get( $BASEURL . $loc );
+    if ( !$res->is_success ) {
+	     croak( "Failed to get Ha_Det page: $loc" );
+	}
+
+    # Now check if it pulls in the phishing page.
+    if ( $res->content =~ m|="/?(.*?phishing_notification.html)"|s ) {
+	    $res = $agent->get( $BASEURL . "/$1" );
+        if ( !$res->is_success ) {
+            croak( "Failed to get phishing page" );
+        }
+        # The page has a single form on it which we must submit
+        $res = $agent->submit_form();
+        if ( !$res->is_success ) {
+            croak( "Failed to submit phishing page" );
+        }
+    }
+
     $lastop = time;
     return 1;
 }
@@ -159,6 +181,9 @@ sub check_balance {
     my ( @accounts, %account, @headings );
     my ( $getheadings, $col ) = ( 1, 0 );
 
+    while ( my $tag = $parser->get_tag( "div" )) {
+        last if ($tag->[1]{class}||"") eq "account_tables";
+    }
     while( my $tag = $parser->get_tag( "td", "th",  "/tr" )) {
         if ( $tag->[0] eq "/tr" ) {
             if ( $getheadings ) {
@@ -171,6 +196,7 @@ sub check_balance {
             }
             $getheadings = 0;
             $col = 0;
+
             if ( %account and $account{+ACCTTYPE} ne ACCTTYPE ) {
                 $account{+BALANCE} = undef if
                   $account{+BALANCE} eq "Unavailable";
@@ -335,23 +361,18 @@ sub parse_details {
     return \@headings, \@lines;
 }
 
-sub funds_transfer {
+sub list_beneficiaries {
     my $self = shift;
     my $account_from = shift;
-    my $account_to = shift;
-    my $amount = shift;
     my $confref = shift;
 
     $confref ||= \%cached_config;
     login_dance( $confref ) or return;
 
     # allow passing in of account objects
-    if ( ref $account_from eq "HASH" and defined( $account_from->{nick} )) {
+    if ( ref $account_from eq "Finance::Bank::IE::BankOfIreland::Account"
+         and defined( $account_from->{nick} )) {
         $account_from = $account_from->{nick};
-    }
-
-    if ( ref $account_to eq "HASH" and defined( $account_to->{nick} )) {
-        $account_to = $account_to->{nick};
     }
 
     $agent->follow_link( text => $account_from )
@@ -363,17 +384,45 @@ sub funds_transfer {
     $agent->follow_link( text => "Money Transfer" )
       or croak( "Couldn't load money transfer" );
 
-    #
     # June 2006 update: all payments are on the one page, listed as
     # 'beneficiaries' And instead of having a nice option list,
     # there's a bunch of checkboxes, with attendant text.
     my $beneficiaries = $self->parse_beneficiaries( $agent->content );
 
+    $beneficiaries;
+}
+
+sub funds_transfer {
+    my $self = shift;
+    my $account_from = shift;
+    my $account_to = shift;
+    my $amount = shift;
+    my $confref = shift;
+
+    $confref ||= \%cached_config;
+    login_dance( $confref ) or return;
+
+    # allow passing in of account objects
+    if ( ref $account_from eq "Finance::Bank::IE::BankOfIreland::Account"
+         and defined( $account_from->{nick} )) {
+        $account_from = $account_from->{nick};
+    }
+
+    if ( ref $account_to eq "Finance::Bank::IE::BankOfIreland::Account" and
+         defined( $account_to->{nick} )) {
+        $account_to = $account_to->{nick};
+    }
+
+    my $beneficiaries = list_beneficiaries( $self, $account_from, $confref );
+
     my $val;
-    for my $bene ( @{$beneficiaries}) {
-        $val = $bene->[-1] if ( $bene->[0] ||'' ) eq $account_to;
-        $val = $bene->[-1] if ( $bene->[1] ||'' ) eq $account_to;
-        last if $val;
+    for my $bene ( @{$beneficiaries} ) {
+        if ((( $bene->{account_no} ||'' ) eq $account_to ) or
+            (( $bene->{nick} ||'' ) eq $account_to )) {
+            croak "Ambiguous destination account $account_to"
+              if $val;
+            $val = $bene->{input};
+        }
     }
 
     if ( !defined( $val )) {
@@ -398,14 +447,17 @@ sub funds_transfer {
     $agent->submit_form() or
       croak( "Payment confirm failed" );
 
+    if ( $agent->content !~ /your request.*is confirmed/si ) {
+        croak( "Payment failed" );
+    }
+
     # return the 'receipt'
     return $agent->content;
 }
 
 #
-# Parse the beneficiaries page. Returns a ref of data (containing some
-# undefs) which ties a nickname and an account number to a setting for
-# the rd_pay_cancel radiobutton.
+# Parse the beneficiaries page.
+# Returns a bunch of accounts.
 #
 sub parse_beneficiaries {
     my $self = shift;
@@ -430,7 +482,6 @@ sub parse_beneficiaries {
             $getheadings = 0;
             $col = 0;
 
-            # now convert the date
             push @lines,
               [
                delete $line{+BENNAME},
@@ -475,7 +526,25 @@ sub parse_beneficiaries {
         }
     }
 
-    \@lines;
+    # now clean up the whole mess.
+    my @benes;
+    for my $bene ( @lines ) {
+        # no input -> not valid
+        next unless defined( $bene->[-1] ) and $bene->[-1]
+          !~ /^(pay_future|)$/;
+        push @benes,
+          bless {
+                 type => 'Beneficiary',
+                 nick => $bene->[0],
+                 account_no => $bene->[1],
+                 nsc => $bene->[2],
+                 ref => $bene->[3],
+                 desc => $bene->[4],
+                 input => $bene->[5],
+                }, "Finance::Bank::IE::BankOfIreland::Account";
+    }
+
+    \@benes;
 }
 
 package Finance::Bank::IE::BankOfIreland::Account;
