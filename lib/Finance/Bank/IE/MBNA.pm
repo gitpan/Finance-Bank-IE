@@ -4,7 +4,7 @@
 #
 package Finance::Bank::IE::MBNA;
 
-our $VERSION = "0.08";
+our $VERSION = "0.09";
 
 use strict;
 use WWW::Mechanize;
@@ -238,6 +238,8 @@ sub account_details {
         if ( $tag->[0] eq "/tr" ) {
             if ( @line ) {
                 # clean up the data a bit
+				$line[TXDATE] =~ s/\xa0//; # nbsp, I guess
+				$line[TXDATE] ||= $line[POSTDATE]; # just in case
                 my ( $d, $m, $y ) = split( /\//, $line[TXDATE]);
                 $line[TXDATE] = mktime( 0, 0, 0, $d, $m - 1, $y - 1900 );
                 ( $d, $m, $y ) = split( /\//, $line[POSTDATE] );

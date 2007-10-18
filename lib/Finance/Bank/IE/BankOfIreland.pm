@@ -4,7 +4,7 @@
 #
 package Finance::Bank::IE::BankOfIreland;
 
-our $VERSION = "0.08";
+our $VERSION = "0.10";
 
 # headers for account summary page
 use constant {
@@ -13,11 +13,11 @@ use constant {
         NICKNAME => "Nickname Information: Nickname",
           CURRENCY => "Currency",
             ACCTNUM  => "Account Number",
-  };
+};
 
 # headers for transaction list page
 use constant {
-	DATE => "Date",
+    DATE => "Date",
       DETAIL => "Details",
         DEBIT => "Debit",
           CREDIT => "Credit",
@@ -73,7 +73,7 @@ sub login_dance {
     if ( !defined( $agent )) {
         $agent = WWW::Mechanize->new( env_proxy => 1, autocheck => 1 );
         $agent->env_proxy;
-
+        
         $agent->quiet( 0 );
         $agent->agent_alias( 'Windows IE 6' );
     } else {
@@ -101,24 +101,24 @@ sub login_dance {
     # it being the only form on the page for now.
     $agent->field( "USER", $confref->{user} );
     my $form = $agent->current_form();
-    my $field = $form->find_input( "Password_1" );
-    if ( $field->value eq "1" ) {
-        $agent->field( "Pass_Val_1", $confref->{contact} );
-    } elsif ( $field->value eq "2" ) {
+    my $field = $form->find_input( "Pass_Val_1" );
+    if ( !defined( $field )) {
+        croak( "unrecognised secret type" );
+    }
+
+    if ( $agent->content =~ /your date of birth/is ) {
         $agent->field( "Pass_Val_1", $confref->{dob} );
     } else {
-        croak( "unrecognised secret type " . $field->value );
+        $agent->field( "Pass_Val_1", $confref->{contact} );
     }
 
-    # now for the PIN
-    for my $pd ( 1..3 ) {
-        $field = $form->find_input( "PIN_Digit_" . $pd );
-        my $idx = $field->value;
-        $form->find_input( "PIN_Val_" . $pd )->readonly( 0 );
-        $agent->field( "PIN_Val_" . $pd,
-                      substr( $confref->{pin}, $idx -1 , 1 ));
+    $res = $agent->submit_form();
+
+    if ( !$res->is_success ) {
+        croak( "Failed to submit login form" );
     }
 
+    set_pin_fields( $agent, $confref );
     $res = $agent->submit_form();
 
     if ( !$res->is_success ) {
@@ -128,21 +128,30 @@ sub login_dance {
     my $page = $res->content;
 
     if ( $page !~ /Ha_Det/ ) {
+        if ( $page =~ /authentication details are incorrect/si ) {
+            croak( "Your login details are incorrect!" );
+        }
+        $agent->save_content( "/var/tmp/boi-failed.html" );
         croak( "Login failed: we didn't get the Ha_Det page" );
     }
 
     # We need to check for the phishing page, because otherwise we're not
     # going to get any further info. Let's follow the Ha_Det link first.
+    #
+    # There's also a T&C page which I'm not going to cater for
+    # specifically because it's a T&C page. You want it, you read it.
     my ( $loc ) = $page =~ /Ha_Det.*location.href="\/?(.*?)"/s;
-	$loc =~ s/$BASEURL//; # just in case. should really use URI to frob this.
-	$res = $agent->get( $BASEURL . $loc );
+    $loc =~ s/$BASEURL//; # just in case. should really use URI to frob this.
+    $res = $agent->get( $BASEURL . $loc );
     if ( !$res->is_success ) {
-	     croak( "Failed to get Ha_Det page: $loc" );
-	}
+        croak( "Failed to get Ha_Det page: $loc" );
+    }
 
     # Now check if it pulls in the phishing page.
-    if ( $res->content =~ m|="/?(.*?phishing_notification.html)"|s ) {
-	    $res = $agent->get( $BASEURL . "/$1" );
+    if ( $agent->find_link( url_regex => qr/phishing_notification.html/ )) {
+        $res =
+          $agent->follow_link( url_regex => qr/phishing_notification.html/ );
+
         if ( !$res->is_success ) {
             croak( "Failed to get phishing page" );
         }
@@ -184,7 +193,7 @@ sub check_balance {
     while ( my $tag = $parser->get_tag( "div" )) {
         last if ($tag->[1]{class}||"") eq "account_tables";
     }
-    while( my $tag = $parser->get_tag( "td", "th",  "/tr" )) {
+    while ( my $tag = $parser->get_tag( "td", "th",  "/tr" )) {
         if ( $tag->[0] eq "/tr" ) {
             if ( $getheadings ) {
                 carp( "Did not find expected headings" ) unless
@@ -213,7 +222,7 @@ sub check_balance {
         }
 
         my $text = $parser->get_trimmed_text( "/" . $tag->[0] );
-        $text =~ s/\xa0//; # nbsp, I guess
+        $text =~ s/\xa0//;      # nbsp, I guess
 
         if ( $getheadings ) {
             push @headings, $text;
@@ -299,7 +308,7 @@ sub parse_details {
     my ( @lines, %line, @headings );
     my ( $getheadings, $col ) = ( 1, 0 );
 
-    while( my $tag = $parser->get_tag( "td", "th", "/tr" )) {
+    while ( my $tag = $parser->get_tag( "td", "th", "/tr" )) {
         if ( $tag->[0] eq "/tr" ) {
             if ( $getheadings ) {
                 # sanity check
@@ -319,8 +328,8 @@ sub parse_details {
                 $line{+DATE} ||= ""; # triggers failure
                 $line{+DEBIT} ||= "0.00";
                 $line{+CREDIT} ||= "0.00";
-                $line{+DETBAL} ||= ( @lines ? $lines[-1]->[-1] : 0 ) +
-                  $line{+CREDIT} - $line{+DEBIT};
+                $line{+DETBAL} ||= ( @lines ? $lines[-1]->[-1] : 0 ) -
+                  $line{+CREDIT} + $line{+DEBIT};
 
                 # now convert the date to unix time
                 my ( $d, $m, $y ) = $line{+DATE} =~ /(\d+).(\w+).(\d+)/;
@@ -384,9 +393,6 @@ sub list_beneficiaries {
     $agent->follow_link( text => "Money Transfer" )
       or croak( "Couldn't load money transfer" );
 
-    # June 2006 update: all payments are on the one page, listed as
-    # 'beneficiaries' And instead of having a nice option list,
-    # there's a bunch of checkboxes, with attendant text.
     my $beneficiaries = $self->parse_beneficiaries( $agent->content );
 
     $beneficiaries;
@@ -436,14 +442,7 @@ sub funds_transfer {
                                   },
                        ) or croak( "Form submit failed" );
 
-    my $form = $agent->current_form();
-    for my $pd ( 1..3 ) {
-        my $field = $form->find_input( "PIN_Digit_" . $pd );
-        my $idx = $field->value;
-        $form->find_input( "PIN_Val_" . $pd )->readonly( 0 );
-        $agent->field( "PIN_Val_" . $pd,
-                       substr( $confref->{pin}, $idx -1 , 1 ));
-    }
+    set_pin_fields( $agent, $confref );
     $agent->submit_form() or
       croak( "Payment confirm failed" );
 
@@ -466,18 +465,25 @@ sub parse_beneficiaries {
     my $parser = new HTML::TokeParser( \$content );
 
     my ( @lines, %line, @headings );
-    my ( $getheadings, $col ) = ( 1, 0 );
+    my ( $getheadings, $col, $tag ) = ( 1, 0 );
 
-    # first table is the 'from' account
-    my $tag = $parser->get_tag( "table" );
+    while ( $tag = $parser->get_tag( "table" )) {
+        last if ( $tag->[1]{summary}||"" ) =~
+          /details of your registered/i;
+    }
+    if (( $tag->[1]{summary}||"" ) !~ /details of your registered/i ) {
+        croak( "can't find accounts table #2" );
+    }
 
-    # second is the one we're looking for
-    $tag = $parser->get_tag( "table" );
-
-    while ( my $tag = $parser->get_tag( "td", "th", "/tr" )) {
+    while ( my $tag = $parser->get_tag( "td", "th", "/tr", "/table" )) {
+        last if $tag->[0] eq "/table";
         if ( $tag->[0] eq "/tr" ) {
             if ( $getheadings ) {
-                # sanity check
+                for my $heading ( +BENNAME, +BENACCT, +BENNSC, +BENREF, +BENDESC ) {
+                    my $h = quotemeta( $heading );
+                    croak( "missing heading $heading" ) unless
+                      grep /^$h$/, @headings;
+                }
             }
             $getheadings = 0;
             $col = 0;
@@ -508,11 +514,10 @@ sub parse_beneficiaries {
     # reset the parser and pull the inputs
     $parser = new HTML::TokeParser( \$content );
 
-    # first table is the 'from' account
-    $tag = $parser->get_tag( "table" );
-
-    # second is the one we're looking for
-    $tag = $parser->get_tag( "table" );
+    while ( $tag = $parser->get_tag( "table" )) {
+        last if ( $tag->[1]{summary}||"" ) =~
+          /details of your registered/i;
+    }
 
     my $line = 0;
     my $input;
@@ -529,9 +534,11 @@ sub parse_beneficiaries {
     # now clean up the whole mess.
     my @benes;
     for my $bene ( @lines ) {
-        # no input -> not valid
-        next unless defined( $bene->[-1] ) and $bene->[-1]
-          !~ /^(pay_future|)$/;
+        # no input -> not valid. but this is sort of bogus, so check
+        # for the obviously bad one, too.
+        next unless
+          defined( $bene->[-1] ) and $bene->[-1] !~ /^(pay_future|)$/;
+        next if $bene->[0] eq "Delete a Beneficiary";
         push @benes,
           bless {
                  type => 'Beneficiary',
@@ -545,6 +552,37 @@ sub parse_beneficiaries {
     }
 
     \@benes;
+}
+
+sub set_pin_fields {
+    my $agent = shift;
+    my $confref = shift;
+
+    my $page = $agent->content;
+
+    if ( $page !~ /PIN_Val_1/s ) {
+        croak( "PIN entry failed: we didn't get the PIN page" );
+    }
+
+    # now for the PIN - we could probably stuff this into a function
+    my ( @pin ) =
+      $page =~ /please select the\s*(\d)\w+, (\d)\w+ and (\d)\w+ digits/si;
+
+    if ( $#pin != 2 ) {
+        croak( "can't figure out what PIN digits are required" );
+    }
+
+    my $form = $agent->current_form();
+    for my $pd ( 1..3 ) {
+        my $idx = $pin[$pd - 1];
+        my $field = $form->find_input( "PIN_Val_" . $pd );
+        if ( !defined( $field )) {
+            croak( "failed to find PIN_Val_$pd" );
+        }
+        $field->readonly( 0 );
+        $agent->field( "PIN_Val_" . $pd,
+                       substr( $confref->{pin}, $idx -1 , 1 ));
+    }
 }
 
 package Finance::Bank::IE::BankOfIreland::Account;
