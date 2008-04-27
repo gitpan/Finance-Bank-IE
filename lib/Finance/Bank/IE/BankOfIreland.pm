@@ -4,7 +4,7 @@
 #
 package Finance::Bank::IE::BankOfIreland;
 
-our $VERSION = "0.10";
+our $VERSION = "0.11";
 
 # headers for account summary page
 use constant {
@@ -566,7 +566,11 @@ sub set_pin_fields {
 
     # now for the PIN - we could probably stuff this into a function
     my ( @pin ) =
-      $page =~ /please select the\s*(\d)\w+, (\d)\w+ and (\d)\w+ digits/si;
+      $page =~ /please (select|enter) the\s*(\d)\w+, (\d)\w+ and (\d)\w+ digits/si;
+
+	if ( @pin ) {
+		shift @pin; # because the first one will be the select/enter match
+	}
 
     if ( $#pin != 2 ) {
         croak( "can't figure out what PIN digits are required" );

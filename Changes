@@ -1,3 +1,16 @@
+0.11
+    BoI layout changed again, as did some of the MBNA layout.
+
+0.10
+	BoI layout changed in mid-October 2007. Code is somewhat more robust in
+	that it will now bail out when it can't parse things instead of returning
+	undef. One minor regression in functionality: the account transfer used
+	understand your own bank account nicknames both as source and
+	destination. Due to formatting changes the nickname as destination no
+	longer works. You can probably fix this by setting a nickname on the
+	account in the third-party beneficiaries list, where BoI seem to inevitably
+	list your non-third-party accounts regardless of what ever else you do.
+
 0.09
     Phishing page, take two.
 

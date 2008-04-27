@@ -1,4 +1,5 @@
 * BOI
+  - more work needed on beneficiaries
 
 * MBNA
   - clean up 'due by' text
@@ -6,4 +7,5 @@
   - retrieve .csv or other statements
 
 * Both modules
+  - move common code into a parent module
   - tests!

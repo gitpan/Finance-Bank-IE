@@ -4,7 +4,7 @@
 #
 package Finance::Bank::IE::MBNA;
 
-our $VERSION = "0.09";
+our $VERSION = "0.10";
 
 use strict;
 use WWW::Mechanize;
@@ -20,11 +20,11 @@ my %cached_config;
 # fields in detail listing
 use constant {
     TXDATE => 1,
-      POSTDATE => 3,
-        MCC => 5,
-          DESC => 7,
-            AMT => 9,
-              CRED => 11,
+    POSTDATE => 3,
+    MCC => 5,
+    DESC => 7,
+    AMT => 9,
+    CRED => 11,
 };
 
 # attempt to log in
@@ -70,12 +70,12 @@ sub login {
     }
 
     $res = $agent->submit_form(
-                               form_name => 'loginForm',
-                               fields => {
-                                          userID => $user,
-                                          password => $password,
-                                         },
-                              );
+        form_name => 'loginForm',
+        fields => {
+            userID => $user,
+            password => $password,
+        },
+        );
 
   RETRY:
     if ( !defined( $res )) {
@@ -112,18 +112,13 @@ sub check_balance {
     my @accounts;
     my @cards;
 
-    # temporary
-    if ( ref( $confref ) ne "HASH" ) {
-        croak( "sorry, API change" );
-    }
-
     $self->login( $confref ) or return;
 
     my $c = $agent->content;
     if ( $c =~ /Please select one/ ) {
         # woo, you've got multiple accounts...
         @cards =
-          $agent->find_all_links( url_regex => qr/AccountSnapshotScreen/ );
+            $agent->find_all_links( url_regex => qr/AccountSnapshotScreen/ );
 
         if ( @cards ) {
             # uniquify it
@@ -146,10 +141,11 @@ sub check_balance {
 
     for my $c ( @cards ) {
         # The account number, ish
-        my $account = get_cell_after( \$c, ".*card" );
+        my ( $type, $account ) = $c =~ /account details for your (.*?), account number.*?(\d+)/si;
+
         my $space = get_cell_after( \$c, "available for cash or purchases" );
         my $balance = get_cell_after( \$c, "outstanding balance", 4 );
-        my $unposted = get_cell_after( \$c, "unposted transactions" );
+        my $unposted = get_cell_after( \$c, "pending transactions" );
         my $min = get_cell_after( \$c, "total minimum payment" );
         my $currency = get_cell_after( \$c, "^Amount", 0 );
 
@@ -183,20 +179,33 @@ sub check_balance {
 
         $min ||= 0;
 
+        # go to the statements page since it would be nice to be able
+        # to pull a range of transactions
+        my ( $acct ) = $c =~ /acctID=\d+/s;
+        my @statements;
+        if ( defined( $acct )) { # and it should be
+            my $res = $agent->get( "https://www.bankcardservices.co.uk/NASApp/NetAccessXX/RecentStatementsScreen?acctID=$acct" );
+            if ( $res->is_success()) {
+                my @st = $agent->find_all_links( url_regex => qr/StatementScreen/ );
+                for my $s ( @st ) {
+                    push @statements, [ $s->url_abs, $s->text ];
+                }
+            }
+        }
+
         # pass back what we found as an array of accounts.
         my $ac =bless {
-                       account_no => $account,
-                       currency => $currency,
-                       balance => $balance,
-                       space => $space,
-                       unposted => $unposted,
-                       min => $min,
-                      }, "Finance::Bank::IE::MBNA::Account";
+            account_id => $acct,
+            account_type => $type,
+            account_no => $account,
+            currency => $currency,
+            balance => $balance,
+            space => $space,
+            unposted => $unposted,
+            min => $min,
+        }, "Finance::Bank::IE::MBNA::Account";
         push @accounts, $ac;
     }
-
-    # go to the statements page:
-    #https://www.bankcardservices.co.uk/NASApp/NetAccessXX/RecentStatementsScreen?acctID=...
 
     @accounts;
 }
@@ -208,7 +217,7 @@ sub account_details {
     my $c = $agent->content;
     if ( $c =~ /Please select one/ ) {
         my @cards =
-          $agent->find_all_links( url_regex => qr /AccountSnapshotScreen/ );
+            $agent->find_all_links( url_regex => qr /AccountSnapshotScreen/ );
         if ( @cards ) {
             my $found = 0;
             for my $ca ( @cards ) {
@@ -232,14 +241,14 @@ sub account_details {
 
     my @activity;
     push @activity,
-      [ "Transaction Date", "Posting Date", "MCC", "Description", "Debit", "Credit" ];
+    [ "Transaction Date", "Posting Date", "MCC", "Description", "Debit", "Credit" ];
     my @line;
     while ( my $tag = $parser->get_tag( "td", "/tr" )) {
         if ( $tag->[0] eq "/tr" ) {
             if ( @line ) {
                 # clean up the data a bit
-				$line[TXDATE] =~ s/\xa0//; # nbsp, I guess
-				$line[TXDATE] ||= $line[POSTDATE]; # just in case
+                $line[TXDATE] =~ s/\xa0//; # nbsp, I guess
+                $line[TXDATE] ||= $line[POSTDATE]; # just in case
                 my ( $d, $m, $y ) = split( /\//, $line[TXDATE]);
                 $line[TXDATE] = mktime( 0, 0, 0, $d, $m - 1, $y - 1900 );
                 ( $d, $m, $y ) = split( /\//, $line[POSTDATE] );
@@ -248,14 +257,14 @@ sub account_details {
                 $line[MCC] =~ s/^\s+$//;
 
                 push @activity,
-                  [
-                   $line[TXDATE],
-                   $line[POSTDATE],
-                   $line[MCC],
-                   $line[DESC],
-                   $line[CRED] eq "CR" ? 0 : $line[AMT],
-                   $line[CRED] eq "CR" ? $line[AMT] : 0,
-                  ];
+                [
+                 $line[TXDATE],
+                 $line[POSTDATE],
+                 $line[MCC],
+                 $line[DESC],
+                 $line[CRED] eq "CR" ? 0 : $line[AMT],
+                 $line[CRED] eq "CR" ? $line[AMT] : 0,
+                ];
 
                 @line = ();
             }
@@ -291,11 +300,13 @@ sub get_cell_after {
                 }
                 my $ret = $parser->get_trimmed_text( "/td" );
                 $ret =~ s/&#8364;//gs;
-                $ret =~ s/,//gs;
+                    $ret =~ s/,//gs;
                 return trim( $ret );
             }
         }
     }
+
+    die "Unable to find text matching $matchtext";
 }
 
 sub trim {
