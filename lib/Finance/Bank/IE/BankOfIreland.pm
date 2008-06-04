@@ -4,7 +4,7 @@
 #
 package Finance::Bank::IE::BankOfIreland;
 
-our $VERSION = "0.11";
+our $VERSION = "0.12";
 
 # headers for account summary page
 use constant {
@@ -30,10 +30,11 @@ use constant {
       BENACCT => 'Account Number',
         BENNSC =>
           'National Sort Code (NSC) Information: National Sort Code (NSC)',
-            BENREF => 'Reference Number Information: Reference Number',
-              BENDESC =>
-                'Beneficiary Description Information: Beneficiary Description',
-            };
+          BENREF => 'Reference Number Information: Reference Number',
+            BENDESC =>
+              'Beneficiary Description Information: Beneficiary Description',
+              BENSTATUS => 'Status Information: Status',
+};
 
 my $BASEURL = "https://www.365online.com/";
 
@@ -73,7 +74,7 @@ sub login_dance {
     if ( !defined( $agent )) {
         $agent = WWW::Mechanize->new( env_proxy => 1, autocheck => 1 );
         $agent->env_proxy;
-        
+
         $agent->quiet( 0 );
         $agent->agent_alias( 'Windows IE 6' );
     } else {
@@ -279,7 +280,7 @@ sub account_details {
         $detail = $agent->content;
 
         my ( $hdr, $act ) = $self->parse_details( \$detail );
-        push @activity, @$act;
+        push @activity, @$act if defined( $act );
         if ( !@header ) {
             @header = @$hdr;
         }
@@ -421,23 +422,27 @@ sub funds_transfer {
 
     my $beneficiaries = list_beneficiaries( $self, $account_from, $confref );
 
-    my $val;
+    my $acct;
     for my $bene ( @{$beneficiaries} ) {
         if ((( $bene->{account_no} ||'' ) eq $account_to ) or
             (( $bene->{nick} ||'' ) eq $account_to )) {
             croak "Ambiguous destination account $account_to"
-              if $val;
-            $val = $bene->{input};
+              if $acct;
+            $acct = $bene;
         }
     }
 
-    if ( !defined( $val )) {
+    if ( !defined( $acct )) {
         croak( "Unable to find $account_to in list of accounts" );
+    }
+
+    if ( $acct->{status} eq "Inactive" ) {
+        croak( "Inactive beneficiary" );
     }
 
     $agent->submit_form(
                         fields => {
-                                   rd_pay_cancel => $val,
+                                   rd_pay_cancel => $acct->{input},
                                    txt_pay_amount => $amount,
                                   },
                        ) or croak( "Form submit failed" );
@@ -479,7 +484,8 @@ sub parse_beneficiaries {
         last if $tag->[0] eq "/table";
         if ( $tag->[0] eq "/tr" ) {
             if ( $getheadings ) {
-                for my $heading ( +BENNAME, +BENACCT, +BENNSC, +BENREF, +BENDESC ) {
+                for my $heading ( +BENNAME, +BENACCT, +BENNSC, +BENREF,
+                                  +BENDESC, +BENSTATUS ) {
                     my $h = quotemeta( $heading );
                     croak( "missing heading $heading" ) unless
                       grep /^$h$/, @headings;
@@ -495,6 +501,7 @@ sub parse_beneficiaries {
                delete $line{+BENNSC},
                delete $line{+BENREF},
                delete $line{+BENDESC},
+               delete $line{+BENSTATUS},
               ];
             next;
         }
@@ -523,7 +530,9 @@ sub parse_beneficiaries {
     my $input;
     while ( my $tag = $parser->get_tag( "/tr", "input" )) {
         if ( $tag->[0] eq "/tr" ) {
-            push @{$lines[$line]}, $input->[1]->{value};
+            push @{$lines[$line]}, $input->[1]->{value}
+              unless ($input->[1]->{value}||"")
+                =~ /(activate|delete) a beneficiary/i;
             $input = undef;
             $line++;
         } else {
@@ -538,7 +547,7 @@ sub parse_beneficiaries {
         # for the obviously bad one, too.
         next unless
           defined( $bene->[-1] ) and $bene->[-1] !~ /^(pay_future|)$/;
-        next if $bene->[0] eq "Delete a Beneficiary";
+
         push @benes,
           bless {
                  type => 'Beneficiary',
@@ -547,7 +556,8 @@ sub parse_beneficiaries {
                  nsc => $bene->[2],
                  ref => $bene->[3],
                  desc => $bene->[4],
-                 input => $bene->[5],
+                 status => $bene->[5],
+                 input => $bene->[6],
                 }, "Finance::Bank::IE::BankOfIreland::Account";
     }
 
@@ -568,9 +578,9 @@ sub set_pin_fields {
     my ( @pin ) =
       $page =~ /please (select|enter) the\s*(\d)\w+, (\d)\w+ and (\d)\w+ digits/si;
 
-	if ( @pin ) {
-		shift @pin; # because the first one will be the select/enter match
-	}
+    if ( @pin ) {
+        shift @pin; # because the first one will be the select/enter match
+    }
 
     if ( $#pin != 2 ) {
         croak( "can't figure out what PIN digits are required" );

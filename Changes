@@ -1,3 +1,8 @@
+0.12
+    Missed one of the MBNA layout changes. Also, I added some sanity
+    checking to the BoI beneficiaries code; it now checks that a
+    beneficiary is active before letting you use it.
+
 0.11
     BoI layout changed again, as did some of the MBNA layout.
 

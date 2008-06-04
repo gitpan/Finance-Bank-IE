@@ -4,7 +4,7 @@
 #
 package Finance::Bank::IE::MBNA;
 
-our $VERSION = "0.10";
+our $VERSION = "0.11";
 
 use strict;
 use WWW::Mechanize;
@@ -18,13 +18,15 @@ my $agent;
 my %cached_config;
 
 # fields in detail listing
+# Dear MBNA, your HTML is awful. empty <td> tags are the devil's work.
 use constant {
     TXDATE => 1,
     POSTDATE => 3,
     MCC => 5,
-    DESC => 7,
-    AMT => 9,
-    CRED => 11,
+    RATE => 7,
+    DESC => 9,
+    AMT => 11,
+    CRED => 13,
 };
 
 # attempt to log in
