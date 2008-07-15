@@ -4,7 +4,7 @@
 #
 package Finance::Bank::IE::MBNA;
 
-our $VERSION = "0.11";
+our $VERSION = "0.13";
 
 use strict;
 use WWW::Mechanize;
@@ -67,12 +67,12 @@ sub login {
     }
 
     # log in
-    if ( $agent->content() !~ /loginForm/ ) {
-        croak( "Login Form not found\n" );
+    if ( $agent->content() !~ /olb_login/ ) {
+        croak( "Login Form not found" );
     }
 
     $res = $agent->submit_form(
-        form_name => 'loginForm',
+        form_name => 'olb_login',
         fields => {
             userID => $user,
             password => $password,

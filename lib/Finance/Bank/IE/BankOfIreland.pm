@@ -4,7 +4,7 @@
 #
 package Finance::Bank::IE::BankOfIreland;
 
-our $VERSION = "0.12";
+our $VERSION = "0.13";
 
 # headers for account summary page
 use constant {
@@ -36,7 +36,7 @@ use constant {
               BENSTATUS => 'Status Information: Status',
 };
 
-my $BASEURL = "https://www.365online.com/";
+my $BASEURL = "https://www1.365online.com/";
 
 use WWW::Mechanize;
 use HTML::TokeParser;
@@ -72,11 +72,17 @@ sub login_dance {
     }
 
     if ( !defined( $agent )) {
-        $agent = WWW::Mechanize->new( env_proxy => 1, autocheck => 1 );
+        $agent = WWW::Mechanize->new( env_proxy => 1, autocheck => 1,
+                                      keep_alive => 10 );
         $agent->env_proxy;
-
         $agent->quiet( 0 );
-        $agent->agent_alias( 'Windows IE 6' );
+        $agent->agent( 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.0.12) Gecko/20071126 Fedora/1.5.0.12-7.fc6 Firefox/1.5.0.12' );
+        my $jar = $agent->cookie_jar();
+        $jar->{hide_cookie2} = 1;
+        $agent->add_header( 'Accept' => 'text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5' );
+        $agent->add_header( 'Accept-Language' => 'en-US,en;q=0.5' );
+        $agent->add_header( 'Accept-Charset' => 'ISO-8859-1,utf-8;q=0.7,*;q=0.7' );
+        $agent->add_header( 'Accept-Encoding' => 'gzip,deflate' );
     } else {
         # simple check to see if the login is live
         if ( time - $lastop < 60 ) {
@@ -87,15 +93,21 @@ sub login_dance {
           $agent->get( $BASEURL . 'servlet/Dispatcher/onlinebanking.htm' );
         if ( $res->is_success ) {
             $lastop = time;
+            print STDERR "Short-circuit: session still valid\n"
+                if $confref->{debug};
             return 1;
         }
+        print STDERR "Session has timed out, redoing login\n"
+            if $confref->{debug};
     }
 
     # fetch ye login pageibus
     my $res = $agent->get( $BASEURL . 'servlet/Dispatcher/login.htm' );
+    $agent->save_content( '/var/tmp/login.htm' ) if $confref->{debug};
 
     if ( !$res->is_success ) {
         croak( "Failed to get login page" );
+    } else {
     }
 
     # helpfully, BoI removed the form name, so we're going to rely on
@@ -113,10 +125,12 @@ sub login_dance {
         $agent->field( "Pass_Val_1", $confref->{contact} );
     }
 
-    $res = $agent->submit_form();
+    $res = $agent->submit_form( button => 'submit', 'x' => 139, 'y' => 16 );
 
     if ( !$res->is_success ) {
         croak( "Failed to submit login form" );
+    } else {
+        print STDERR $res->request->as_string;
     }
 
     set_pin_fields( $agent, $confref );
@@ -132,7 +146,8 @@ sub login_dance {
         if ( $page =~ /authentication details are incorrect/si ) {
             croak( "Your login details are incorrect!" );
         }
-        $agent->save_content( "/var/tmp/boi-failed.html" );
+        $agent->save_content( "/var/tmp/boi-failed.html" )
+            if $confref->{debug};
         croak( "Login failed: we didn't get the Ha_Det page" );
     }
 
@@ -142,8 +157,9 @@ sub login_dance {
     # There's also a T&C page which I'm not going to cater for
     # specifically because it's a T&C page. You want it, you read it.
     my ( $loc ) = $page =~ /Ha_Det.*location.href="\/?(.*?)"/s;
-    $loc =~ s/$BASEURL//; # just in case. should really use URI to frob this.
-    $res = $agent->get( $BASEURL . $loc );
+    print STDERR "being redirected to $loc...\n" if defined( $loc ) and
+        $confref->{debug};
+    $res = $agent->get( $loc =~ /^http/ ? $loc : $BASEURL . $loc );
     if ( !$res->is_success ) {
         croak( "Failed to get Ha_Det page: $loc" );
     }
@@ -232,6 +248,10 @@ sub check_balance {
 
         $account{$headings[$col]} = $text if $headings[$col];
         $col++;
+    }
+
+    if ( !@accounts ) {
+        $agent->save_content( '/var/tmp/noaccounts.html' ) if $confref->{debug};
     }
 
     return @accounts;
@@ -571,6 +591,9 @@ sub set_pin_fields {
     my $page = $agent->content;
 
     if ( $page !~ /PIN_Val_1/s ) {
+        if ( $page =~ /Session Timeout/ ) {
+            print STDERR "Apparently your session timed out\n";
+        }
         croak( "PIN entry failed: we didn't get the PIN page" );
     }
 
