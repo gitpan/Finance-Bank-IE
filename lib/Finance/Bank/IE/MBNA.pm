@@ -97,11 +97,9 @@ sub login {
             # this assumes your email address is (a) set and (b) correct
             $res = $agent->submit_form();
             goto RETRY;
-        } elsif ( $c !~ /Please select one/ ) {
+        } elsif ( $c !~ /my accounts/si ) {
             # we failed for some reason
-            open( DUMP, ">" . $ENV{HOME} . "/mbna.dump" );
-            print DUMP $c;
-            close( DUMP );
+            dumppage( $c );
             croak( "Failed to log in for unknown reason, check ~/mbna.dump" );
         }
     }
@@ -117,28 +115,25 @@ sub check_balance {
     $self->login( $confref ) or return;
 
     my $c = $agent->content;
-    if ( $c =~ /Please select one/ ) {
-        # woo, you've got multiple accounts...
-        @cards =
-            $agent->find_all_links( url_regex => qr/AccountSnapshotScreen/ );
 
-        if ( @cards ) {
-            # uniquify it
-            my %cards;
-            for my $ca ( @cards ) {
-                $cards{$ca->url_abs} = $ca;
-            }
-            @cards = ();
+    # assume you've got multiple accounts...
+    @cards =
+        $agent->find_all_links( url_regex => qr/AccountSnapshotScreen/ );
 
-            for my $card ( values %cards ) {
-                my $res = $agent->get( $card->url_abs());
-                if ( $res->is_success()) {
-                    push @cards, $agent->content;
-                }
+    if ( @cards ) {
+        # uniquify it
+        my %cards;
+        for my $ca ( @cards ) {
+            $cards{$ca->url_abs} = $ca;
+        }
+        @cards = ();
+
+        for my $card ( values %cards ) {
+            my $res = $agent->get( $card->url_abs());
+            if ( $res->is_success()) {
+                push @cards, $agent->content;
             }
         }
-    } else {
-        push @cards, $c;
     }
 
     for my $c ( @cards ) {
@@ -170,12 +165,13 @@ sub check_balance {
 
         $min =~ s/^.*?(\d+)/$1/;
 
-        $currency =~ s/Amount \((.*)\)$/$1/;
+        $currency =~ s/Amount.*\((.*)\)$/$1/;
 
         # currency may be returned as a HTML entity!
         $currency = decode_entities( $currency );
         # err.
-        if ( $currency eq "&#8364;" or $currency eq "\x{20ac}" ) {
+        if ( $currency eq "&#8364;" or $currency eq "\x{20ac}" or
+            $currency eq "\x{e282}" ) {
             $currency = "EUR";
         }
 
@@ -308,7 +304,9 @@ sub get_cell_after {
         }
     }
 
-    die "Unable to find text matching $matchtext";
+    dumppage( ${$c} );
+
+    confess( "Unable to find text matching $matchtext" );
 }
 
 sub trim {
@@ -317,6 +315,16 @@ sub trim {
     $text =~ s/\s$//;
 
     $text;
+}
+
+sub dumppage {
+    my $c = shift;
+    if ( open( DUMP, ">" . $ENV{HOME} . "/mbna.dump" )) {
+        print DUMP $c;
+        close( DUMP );
+    } else {
+        print STDERR "unable to create dumpfile: $!";
+    }
 }
 
 package Finance::Bank::IE::MBNA::Account;
