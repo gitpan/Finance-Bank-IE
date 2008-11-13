@@ -1,3 +1,13 @@
+0.15
+    Forgot to actually bump the module versions and update this file.
+
+0.14
+	Update MBNA for layout changes
+
+0.13
+    Use old BoI address, as both Safari and WWW::Mechanize can't cope
+    with the new one and I don't know why not.
+
 0.12
     Missed one of the MBNA layout changes. Also, I added some sanity
     checking to the BoI beneficiaries code; it now checks that a

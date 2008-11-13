@@ -4,7 +4,7 @@
 #
 package Finance::Bank::IE::BankOfIreland;
 
-our $VERSION = "0.13";
+our $VERSION = "0.15";
 
 # headers for account summary page
 use constant {
