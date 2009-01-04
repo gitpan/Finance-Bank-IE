@@ -4,7 +4,7 @@
 #
 package Finance::Bank::IE::MBNA;
 
-our $VERSION = "0.15";
+our $VERSION = "0.16";
 
 use strict;
 use WWW::Mechanize;
@@ -213,13 +213,13 @@ sub account_details {
 
     $self->login( $confref );
     my $c = $agent->content;
-    if ( $c =~ /Please select one/ ) {
+    if ( $c !~ /Transaction\s+Date/i ) {
         my @cards =
             $agent->find_all_links( url_regex => qr /AccountSnapshotScreen/ );
         if ( @cards ) {
             my $found = 0;
             for my $ca ( @cards ) {
-                if ( $ca->text eq $account ) {
+                if ( $ca->text =~ /\b$account\b/ ) {
                     $found = $ca;
                     last;
                 }
@@ -235,6 +235,7 @@ sub account_details {
 
     # one way or another, we're on the right page now
     $c = $agent->content;
+
     my $parser = new HTML::TokeParser( \$c );
 
     my @activity;

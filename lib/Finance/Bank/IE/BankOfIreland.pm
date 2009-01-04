@@ -4,7 +4,7 @@
 #
 package Finance::Bank::IE::BankOfIreland;
 
-our $VERSION = "0.15";
+our $VERSION = "0.16";
 
 # headers for account summary page
 use constant {
@@ -130,7 +130,7 @@ sub login_dance {
     if ( !$res->is_success ) {
         croak( "Failed to submit login form" );
     } else {
-        print STDERR $res->request->as_string;
+        print STDERR $res->request->as_string if $confref->{debug};
     }
 
     set_pin_fields( $agent, $confref );

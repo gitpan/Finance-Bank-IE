@@ -1,3 +1,7 @@
+0.16
+    BOI: minor cleanup of stray debug text
+    MBNA: update sentinel text to pull account details from summary page
+
 0.15
     Forgot to actually bump the module versions and update this file.
 
