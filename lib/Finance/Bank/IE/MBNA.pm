@@ -4,7 +4,7 @@
 #
 package Finance::Bank::IE::MBNA;
 
-our $VERSION = "0.16";
+our $VERSION = "0.17";
 
 use strict;
 use WWW::Mechanize;
@@ -85,6 +85,22 @@ sub login {
     }
 
     $c = $agent->content();
+
+    # August 2009: security "improved" by putting login on one page
+    # and password on another. Noone else seems to need to do this.
+    if ( $c =~ /siteKeyConfirmForm/si ) {
+        $res = $agent->submit_form(
+            form_name => 'siteKeyConfirmForm',
+            fields => {
+                password => $password,
+            },
+            );
+        if ( !defined( $res )) {
+            croak( "Failed to log in" );
+        }
+
+        $c = $agent->content();
+    }
 
     # Check that we got logged in
     if ( $c !~ /Account Snapshot/si ) {
