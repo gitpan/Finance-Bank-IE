@@ -1,3 +1,9 @@
+0.18
+    MBNA made a text change on the account detail page.
+    dumping MBNA debug data won't happen without $ENV{DEBUG}
+0.17
+    MBNA moved the password onto a separate page.
+
 0.16
     BOI: minor cleanup of stray debug text
     MBNA: update sentinel text to pull account details from summary page

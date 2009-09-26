@@ -153,8 +153,16 @@ sub check_balance {
     }
 
     for my $c ( @cards ) {
-        # The account number, ish
-        my ( $type, $account ) = $c =~ /account details for your (.*?), account number.*?(\d+)/si;
+        # The account number, ish.
+        # changed sept 2009 to
+        # Here are the details of your Gold Visa Card with no. ending  xxxxxx
+        my ( $type, $account ) =
+            $c =~ /details of your (.*?Card) with no. ending.*?(\d+)/si;
+
+        if ( !defined( $type ) or !defined( $account )) {
+            print STDERR "Failed to extract account / type, dumping page\n";
+            dumppage( $c );
+        }
 
         my $space = get_cell_after( \$c, "available for cash or purchases" );
         my $balance = get_cell_after( \$c, "outstanding balance", 4 );
@@ -335,6 +343,10 @@ sub trim {
 }
 
 sub dumppage {
+    # avoid nasty surprises
+    if ( !$ENV{DEBUG} ) {
+        return;
+    }
     my $c = shift;
     if ( open( DUMP, ">" . $ENV{HOME} . "/mbna.dump" )) {
         print DUMP $c;
