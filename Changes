@@ -1,6 +1,12 @@
+0.19
+	Update to BoI fetching of multiple pages in account detail (courtesy of
+	  Audun)
+    Handle empty BoI account detail.
+
 0.18
     MBNA made a text change on the account detail page.
     dumping MBNA debug data won't happen without $ENV{DEBUG}
+
 0.17
     MBNA moved the password onto a separate page.
 

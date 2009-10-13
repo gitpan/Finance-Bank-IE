@@ -4,7 +4,7 @@
 #
 package Finance::Bank::IE::BankOfIreland;
 
-our $VERSION = "0.17";
+our $VERSION = "0.19";
 
 # headers for account summary page
 use constant {
@@ -300,15 +300,18 @@ sub account_details {
         $detail = $agent->content;
 
         my ( $hdr, $act ) = $self->parse_details( \$detail );
-        push @activity, @$act if defined( $act );
+        if ( !$act or !$hdr or !@{$act} or !@{$hdr}) {
+            last;
+        }
+
+        push @activity, @{$act};
         if ( !@header ) {
             @header = @$hdr;
         }
 
-        if ( $detail =~ /nextform/i ) {
-            $agent->submit_form( form_name => 'nextform',
-                                 button => 'Next' )
-              or croak( "next button failed" );
+        if ( $detail =~ /cont_but_next/i ) {
+            $agent->follow_link( url_regex => qr/txlist.htm/ )
+                or croak( "next link failed" );
         } else {
             unshift @activity, \@header;
             last;
@@ -388,7 +391,7 @@ sub parse_details {
     # clean up headings
     @headings = grep !/^\s*$/, @headings;
 
-    return \@headings, \@lines;
+    return \@headings, @lines;
 }
 
 sub list_beneficiaries {

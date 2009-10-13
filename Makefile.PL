@@ -2,7 +2,7 @@ use ExtUtils::MakeMaker;
 
 WriteMakefile(
               NAME	=> 'Finance::Bank::IE',
-              VERSION => '0.18',
+              VERSION => '0.19',
               AUTHOR  => 'Ronan Waide <waider@waider.ie>',
               PREREQ_PM   => {
                               'WWW::Mechanize'	=> '0',
