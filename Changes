@@ -1,6 +1,10 @@
+0.20
+    Previous update broke account detail due to an omitted backslash. (no
+    fault of Audun!) Serves me right for not testing properly.
+
 0.19
-	Update to BoI fetching of multiple pages in account detail (courtesy of
-	  Audun)
+    Update to BoI fetching of multiple pages in account detail (courtesy of
+      Audun)
     Handle empty BoI account detail.
 
 0.18
@@ -18,7 +22,7 @@
     Forgot to actually bump the module versions and update this file.
 
 0.14
-	Update MBNA for layout changes
+        Update MBNA for layout changes
 
 0.13
     Use old BoI address, as both Safari and WWW::Mechanize can't cope
@@ -33,14 +37,14 @@
     BoI layout changed again, as did some of the MBNA layout.
 
 0.10
-	BoI layout changed in mid-October 2007. Code is somewhat more robust in
-	that it will now bail out when it can't parse things instead of returning
-	undef. One minor regression in functionality: the account transfer used
-	understand your own bank account nicknames both as source and
-	destination. Due to formatting changes the nickname as destination no
-	longer works. You can probably fix this by setting a nickname on the
-	account in the third-party beneficiaries list, where BoI seem to inevitably
-	list your non-third-party accounts regardless of what ever else you do.
+        BoI layout changed in mid-October 2007. Code is somewhat more robust in
+        that it will now bail out when it can't parse things instead of returning
+        undef. One minor regression in functionality: the account transfer used
+        understand your own bank account nicknames both as source and
+        destination. Due to formatting changes the nickname as destination no
+        longer works. You can probably fix this by setting a nickname on the
+        account in the third-party beneficiaries list, where BoI seem to inevitably
+        list your non-third-party accounts regardless of what ever else you do.
 
 0.09
     Phishing page, take two.
@@ -49,28 +53,28 @@
     Deal with BoI phishing page
 
 0.07
-	Update to match new BoI layout (changed June 20th or so)
+        Update to match new BoI layout (changed June 20th or so)
 
 0.06
-	Add transfer_funds function to BoI code
-	Update example program to show transfer_funds function
+        Add transfer_funds function to BoI code
+        Update example program to show transfer_funds function
 
 0.05
-	Fix example program to match API!
-	Remove currency from numeric fields in MBNA.pm
-	Handle unicode as well as encoded euro sign in MBNA.pm
+        Fix example program to match API!
+        Remove currency from numeric fields in MBNA.pm
+        Handle unicode as well as encoded euro sign in MBNA.pm
 
 0.04
-	Fix up Makefile with prereqs
-	Parse date in BoI statement and return as unix time
+        Fix up Makefile with prereqs
+        Parse date in BoI statement and return as unix time
 
 0.03
-	Add account details to BoI
-	Clean up somewhat for release
+        Add account details to BoI
+        Clean up somewhat for release
 
 0.02
-	Converted BankOfIreland.pm to use WWW::Mechanize
-	MBNA.pm now handles the occasional Update Your E-Mail Address page
+        Converted BankOfIreland.pm to use WWW::Mechanize
+        MBNA.pm now handles the occasional Update Your E-Mail Address page
 
 0.01
-	Initial version
+        Initial version
