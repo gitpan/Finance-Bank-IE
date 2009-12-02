@@ -4,7 +4,8 @@ Changes
 Makefile.PL
 MANIFEST
 README
-test.pl
 example.pl
 TODO
 META.yml                                 Module meta-data (added by MakeMaker)
+t/MBNA.t
+t/BankOfIreland.t

@@ -1,3 +1,7 @@
+0.21
+    Now we have real tests for the BoI module. Additionally, there's
+    an activate_beneficiary function, and some perldocs (incomplete).
+
 0.20
     Previous update broke account detail due to an omitted backslash. (no
     fault of Audun!) Serves me right for not testing properly.
