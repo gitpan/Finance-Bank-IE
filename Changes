@@ -1,3 +1,6 @@
+0.22
+    Adding support for Permanent TSB
+
 0.21
     Now we have real tests for the BoI module. Additionally, there's
     an activate_beneficiary function, and some perldocs (incomplete).

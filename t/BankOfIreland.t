@@ -4,6 +4,8 @@ use warnings;
 use Test::More tests => 6;
 use Cwd;
 
+use lib qw( t/lib );
+use Test::Util;
 
 BEGIN {
       use_ok( "Finance::Bank::IE::BankOfIreland" );
@@ -11,8 +13,8 @@ BEGIN {
 
 SKIP: {
     my $config;
-    skip "No config available, skipping live tests", 4
-        unless $config = getconfig( 'BOI' );
+    skip "No config available, skipping live tests", 5
+        unless $config = Test::Util::getconfig( 'BOI' );
 
     $config->{croak} = 1;
     $config->{debugdir} = getcwd . "/data";
@@ -48,38 +50,4 @@ SKIP: {
       ok( Finance::Bank::IE::BankOfIreland->activate_beneficiary( $testaccount, $testbene, "00000000" ),
           "activated beneficiary" );
     }
-}
-
-
-# cheap windows-like config:
-# [secret]
-# key = value
-sub getconfig {
-    my $env = shift;
-    my %config;
-    my $section;
-
-    my $file = $ENV{$env . "CONFIG"};
-    return unless $file;
-    open( my $FILE, "<$file" ) or return;
-
-    while( my $line = <$FILE> ) {
-        if ( $line =~ /^\[(\w+)\]$/ ) {
-            $section = $1;
-            next;
-        }
-
-        if ( $section eq "secret" ) {
-            my ( $key, $value ) = split( /\s*=\s*/, $line, 2 );
-            next unless $key;
-            next unless $value;
-            $key =~ s/\s+//g;
-            $value =~ s/^\s+//;
-            $value =~ s/\s+$//;
-            $config{$key} = $value;
-        }
-    }
-
-    close( $FILE );
-    \%config;
 }

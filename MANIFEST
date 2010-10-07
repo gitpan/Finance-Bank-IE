@@ -1,11 +1,14 @@
-lib/Finance/Bank/IE/BankOfIreland.pm
-lib/Finance/Bank/IE/MBNA.pm
+lib/Finance/Bank/IE/BankOfIreland.pm	 Bank of Ireland support
+lib/Finance/Bank/IE/MBNA.pm				 MBNA support
+lib/Finance/Bank/IE/PTSB.pm				 Permanent TSB support
 Changes
 Makefile.PL
 MANIFEST
 README
-example.pl
+example.pl								 Sample code
 TODO
 META.yml                                 Module meta-data (added by MakeMaker)
-t/MBNA.t
-t/BankOfIreland.t
+t/lib/Test/Util.pm						 Utilities to support testing
+t/MBNA.t								 Tests for MBNA.pm
+t/PTSB.t								 Tests for PTSB.pm
+t/BankOfIreland.t						 Tests for BankOfIreland.pm
