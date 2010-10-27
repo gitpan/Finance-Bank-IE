@@ -2,7 +2,6 @@
 use warnings;
 use strict;
 use Test::More tests => 5;
-use Test::MockModule;
 use Cwd;
 
 use lib qw( t/lib );

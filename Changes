@@ -1,3 +1,6 @@
+0.23
+    Remove Test::MockModule requirement as it's not yet used
+
 0.22
     Adding support for Permanent TSB
 

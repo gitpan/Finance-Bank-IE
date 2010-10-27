@@ -42,7 +42,7 @@ Note that all functions are set up to act as methods (i.e. they all need to be i
 use strict;
 use warnings;
 
-our $VERSION = "0.21";
+our $VERSION = "0.23";
 
 # headers for account summary page
 use constant {

@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Finance-Bank-IE
-version:            0.22
+version:            0.23
 abstract:           ~
 author:
     - Ronan Waide <waider@waider.ie>

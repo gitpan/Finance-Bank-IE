@@ -4,7 +4,7 @@
 #
 package Finance::Bank::IE::PTSB;
 
-our $VERSION = "0.21";
+our $VERSION = "0.23";
 
 use warnings;
 use strict;
