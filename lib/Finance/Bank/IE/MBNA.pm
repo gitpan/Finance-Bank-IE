@@ -4,7 +4,7 @@
 #
 package Finance::Bank::IE::MBNA;
 
-our $VERSION = "0.23";
+our $VERSION = "0.24";
 
 use strict;
 use WWW::Mechanize;
@@ -71,6 +71,7 @@ sub login {
         croak( "Login Form not found" );
     }
 
+    print STDERR "# logging in\n" if $ENV{DEBUG};
     $res = $agent->submit_form(
         form_name => 'olb_login',
         fields => {
@@ -89,6 +90,7 @@ sub login {
     # August 2009: security "improved" by putting login on one page
     # and password on another. Noone else seems to need to do this.
     if ( $c =~ /siteKeyConfirmForm/si ) {
+        print STDERR "# site key confirm\n" if $ENV{DEBUG};
         $res = $agent->submit_form(
             form_name => 'siteKeyConfirmForm',
             fields => {
@@ -110,10 +112,11 @@ sub login {
             carp( "Incorrect username/password\n" );
             return undef;
         } elsif ( $c =~ /update your e-mail address/si ){
+            print STDERR "# accepting email address\n" if $ENV{DEBUG};
             # this assumes your email address is (a) set and (b) correct
             $res = $agent->submit_form();
             goto RETRY;
-        } elsif ( $c !~ /my accounts/si ) {
+        } elsif ( $c !~ /AccountSnapshotScreen/si ) {
             # we failed for some reason
             dumppage( $c );
             croak( "Failed to log in for unknown reason, check ~/mbna.dump" );
@@ -145,88 +148,18 @@ sub check_balance {
         @cards = ();
 
         for my $card ( values %cards ) {
+            print STDERR "# fetching card summary (" . $card->text . ")\n"
+                if $ENV{DEBUG};
             my $res = $agent->get( $card->url_abs());
             if ( $res->is_success()) {
-                push @cards, $agent->content;
+                my $summary = parse_account_summary( $agent->content );
+                my ( $type, $account ) = $card->text =~
+                    m@MBNA (.*?ard), account number ending ([0-9]+)@;
+                $summary->{account_type} = $type;
+                $summary->{account_no} = $account;
+                push @accounts, $summary;
             }
         }
-    }
-
-    for my $c ( @cards ) {
-        # The account number, ish.
-        # changed sept 2009 to
-        # Here are the details of your Gold Visa Card with no. ending  xxxxxx
-        my ( $type, $account ) =
-            $c =~ /details of your (.*?Card) with no. ending.*?(\d+)/si;
-
-        if ( !defined( $type ) or !defined( $account )) {
-            print STDERR "Failed to extract account / type, dumping page\n";
-            dumppage( $c );
-        }
-
-        my $space = get_cell_after( \$c, "available for cash or purchases" );
-        my $balance = get_cell_after( \$c, "outstanding balance", 4 );
-        my $unposted = get_cell_after( \$c, "pending transactions" );
-        my $min = get_cell_after( \$c, "total minimum payment" );
-        my $currency = get_cell_after( \$c, "^Amount", 0 );
-
-        # clean out any euro signs
-        $space =~ s/^.*?(\d+)/$1/;
-        $balance =~ s/^.*?(\d+)/$1/;
-
-        if ( $balance =~ s/CR// ) {
-            # lucky you, you're in credit, so we'll leave it as-is
-        } else {
-            $balance = -$balance;
-        }
-
-        if ( $unposted =~ s/^.*?(\d+)/$1/ ) {
-            # your balance is not complete, but that's ok
-        } else {
-            # no unposted items, let's make sure it's not text
-            $unposted = 0;
-        }
-
-        $min =~ s/^.*?(\d+)/$1/;
-
-        $currency =~ s/Amount.*\((.*)\)$/$1/;
-
-        # currency may be returned as a HTML entity!
-        $currency = decode_entities( $currency );
-        # err.
-        if ( $currency eq "&#8364;" or $currency eq "\x{20ac}" or
-            $currency eq "\x{e282}" ) {
-            $currency = "EUR";
-        }
-
-        $min ||= 0;
-
-        # go to the statements page since it would be nice to be able
-        # to pull a range of transactions
-        my ( $acct ) = $c =~ /acctID=\d+/s;
-        my @statements;
-        if ( defined( $acct )) { # and it should be
-            my $res = $agent->get( "https://www.bankcardservices.co.uk/NASApp/NetAccessXX/RecentStatementsScreen?acctID=$acct" );
-            if ( $res->is_success()) {
-                my @st = $agent->find_all_links( url_regex => qr/StatementScreen/ );
-                for my $s ( @st ) {
-                    push @statements, [ $s->url_abs, $s->text ];
-                }
-            }
-        }
-
-        # pass back what we found as an array of accounts.
-        my $ac =bless {
-            account_id => $acct,
-            account_type => $type,
-            account_no => $account,
-            currency => $currency,
-            balance => $balance,
-            space => $space,
-            unposted => $unposted,
-            min => $min,
-        }, "Finance::Bank::IE::MBNA::Account";
-        push @accounts, $ac;
     }
 
     @accounts;
@@ -250,6 +183,8 @@ sub account_details {
             }
             croak( "no such account $account" ) unless $found;
 
+            print STDERR "# fetching card details (" . $found->text . ")\n"
+                if $ENV{DEBUG};
             my $res = $agent->get( $found->url_abs());
             if ( !$res->is_success()) {
                 croak( "failed to get detail page for $account" );
@@ -269,6 +204,7 @@ sub account_details {
     while ( my $tag = $parser->get_tag( "td", "/tr" )) {
         if ( $tag->[0] eq "/tr" ) {
             if ( @line ) {
+                $line[MCC] ||= ""; # no longer provided in summary
                 # clean up the data a bit
                 $line[TXDATE] =~ s/\xa0//; # nbsp, I guess
                 $line[TXDATE] ||= $line[POSTDATE]; # just in case
@@ -293,53 +229,102 @@ sub account_details {
             }
             next;
         }
-        next unless ( $tag->[1]{class}||"" ) =~ /^txn(Hi|Lo)$/;
-        push @line, $parser->get_trimmed_text( "/td" );
+        my $class = $tag->[1]{class} || "";
+        my $value = $parser->get_trimmed_text( "/td" );
+        if ( $class =~ /\btxnColTransDate\b/ ) {
+            $line[TXDATE] = $value;
+        } elsif ( $class =~ /\btxnColPostDate\b/ ) {
+            $line[POSTDATE] = $value;
+        } elsif ( $class =~ /\btxnColDescr\b/ ) {
+            $line[DESC] = $value;
+        } elsif ( $class =~ /\btxnColAmount\b/ ) {
+            $line[AMT] = $value;
+        } elsif ( $class =~ /\btxnColCR\b/ ) {
+            $line[CRED] = $value;
+        }
     }
 
     return @activity;
 }
 
-sub get_cell_after {
-    my $c = shift;
-    my $matchtext = shift;
-    my $cells = shift;
+sub parse_account_summary {
+    my $content = shift;
 
-    my $parser = new HTML::TokeParser( $c );
+    my %detail;
 
-    $cells = 1 if !defined( $cells );
+    ( $detail{account_id} ) = $content =~ /acctID=([^"]+)"/s;
 
-    while ( my $t = $parser->get_token() ) {
-        if ( $t->[0] eq "T" ) {
-            my $text = $t->[1];
-            if ( $text =~ /$matchtext/is ) {
-                if ( $cells == 0 ) {
-                    return trim( $text );
-                }
+    my $parser = new HTML::TokeParser( \$content );
+    while( my $t = $parser->get_tag( "div" )) {
+        my $class = $t->[1]{class} || "";
 
-                # jump to the next table cell
-                for my $c ( 1..$cells ) {
-                    $t = $parser->get_token( "td" );
-                }
-                my $ret = $parser->get_trimmed_text( "/td" );
-                $ret =~ s/&#8364;//gs;
-                    $ret =~ s/,//gs;
-                return trim( $ret );
+        if ( $class =~ /\bcolumn1\b/ ) {
+            my $title = $parser->get_trimmed_text( "/div" );
+            $t = $parser->get_tag( "div" );
+            my $text = $parser->get_trimmed_text( "/div" );
+
+            if ( $title =~ /pending transactions/i ) {
+                $title = 'unposted';
+                $text =~ s/[()]//g;
+            } elsif ( $title =~ /minimum payment due/i ) {
+                $title = 'min';
+            } elsif ( $title =~ /payment to be received/i ) {
+                $title = 'due';
+            } elsif ( $title =~ /current balance/i ) {
+                $title = 'balance';
+                $text =~ s/[^0-9]+refresh balance//i;
+            } elsif ( $title =~ /available for cash/i ) {
+                $title = 'space',
+            } else {
+                next;
             }
+
+            $detail{$title} = $text;
         }
     }
 
-    dumppage( ${$c} );
+    # clean up
+    for my $field ( keys %detail ) {
+        # we can hack at the unicode, but converting to HTML entities
+        # makes this code more obvious in terms of what's being
+        # modified.
+        $detail{$field} = encode_entities( $detail{$field} );
+        $detail{$field} =~ s/&nbsp;/ /g;
+        if ( grep { $_ eq $field } qw( min space balance unposted )) {
+            my ( $currency, $amount ) = $detail{$field} =~ m/^([^0-9]+)([0-9,.]+)$/;
+            $currency = 'EUR' if $currency eq '&euro;';
+            $detail{currency} = $currency;
+            $amount =~ s/,//g;
+            $detail{$field} = $amount;
+        }
 
-    confess( "Unable to find text matching $matchtext" );
-}
+    }
 
-sub trim {
-    my $text = shift;
-    $text =~ s/^\s+//;
-    $text =~ s/\s$//;
+    # minor fixups to match old behaviour. needlessly ugly.
+    my ( $day, $mon, $year ) = split( / /, $detail{due} );
+    $mon = 1 if $mon eq 'Jan';
+    $mon = 2 if $mon eq 'Feb';
+    $mon = 3 if $mon eq 'Mar';
+    $mon = 4 if $mon eq 'Apr';
+    $mon = 5 if $mon eq 'May';
+    $mon = 6 if $mon eq 'Jun';
+    $mon = 7 if $mon eq 'Jul';
+    $mon = 8 if $mon eq 'Aug';
+    $mon = 9 if $mon eq 'Sep';
+    $mon = 10 if $mon eq 'Oct';
+    $mon = 11 if $mon eq 'Nov';
+    $mon = 12 if $mon eq 'Dec';
+    $detail{min} = $detail{min} . " due by $day/$mon/$year";
 
-    $text;
+    # untested as I don't have a card in credit right now :)
+    if ( !( $detail{balance} =~ s/CR// )) {
+        $detail{balance} = -$detail{balance};
+    }
+    $detail{unposted} ||= 0;
+
+    bless \%detail, "Finance::Bank::IE::MBNA::Account";
+
+    \%detail;
 }
 
 sub dumppage {
