@@ -1,0 +1,343 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<?xml version="1.0" encoding="iso-8859-1"?>
+<HTML xmlns="http://www.w3.org/1999/xhtml">
+<HEAD>
+  <TITLE>Money Transfer</TITLE>
+  <LINK href="/css/content.css" type=text/css rel=stylesheet />
+  <SCRIPT src="/script/js_funcs01_common.js" type=text/javascript></SCRIPT>
+  <SCRIPT src="/script/js_funcs05_form.js" type=text/javascript></SCRIPT>
+  <SCRIPT src="/script/js_funcs17_makeapayment.js" type=text/javascript></SCRIPT>
+  <META http-equiv=Content-Type content="text/html; charset=iso-8859-1" />
+  <META http-equiv=pragma content=no-cache />
+  <META http-equiv=Cache-Control content=no-cache />
+  <META http-equiv=Expires content="Wed, 30 Jan 1980 09:00:00 GMT" />
+<SCRIPT type="text/javascript">
+function showMessage()
+{
+
+return true;
+}
+</SCRIPT>
+</HEAD>
+<BODY onload="hidethem(0,9); jsf_disable_pay(); showMessage(); document.frm_pay_cancel.reset();">
+<DIV class=page>
+<H1>Money Transfer</H1>
+<HR/>
+<DIV class=text><B>How to do a Money Transfer </B><A onkeypress=hidethem(8,9) onclick=hidethem(8,9)
+      href="#information_08"><IMG
+      height=15 alt="Information: Money Transfer"
+      src="/images/051102_cont_info_big01.gif" width=15></img></A>
+</DIV>
+<HR/>
+<DIV class=text><b>Account from which your payment will be made</b></DIV></br>
+<DIV class=account_tables>
+<TABLE summary="Details of the account currently selected">
+  <TBODY>
+  <TR>
+    <TH class=left_corner><IMG height=17 alt=""
+      src="/images/t.gif" width=12></img></TH>
+    <TH><B>Account Type</B></TH>
+    <TH><B>Nickname</B> <A onkeypress=hidethem(1,9) onclick=hidethem(1,9)
+      href="#information_01"><IMG
+      height=15 alt="Information: Nickname"
+      src="/images/051102_cont_info_smal01.gif" width=15></img></A></TH>
+    <TH><B>Account Number</B></TH>
+		 <TH></TH>
+    <TH class=currency><B>Currency</B></TH>
+    <TH class=currency_large><B>Available Funds</B> <A
+      onkeypress=hidethem(6,9) onclick=hidethem(6,9)
+      href="#information_06"><IMG
+      height=15 alt="Information: Available Funds"
+      src="/images/051102_cont_info_smal01.gif" width=15></img></A></TH>
+    <TH class=right_corner><IMG height=17 alt=""
+      src="/images/t.gif" width=5></img></TH></TR>
+  <TR>
+    <TD></TD>
+    <TD><B>Savings</B></TD>
+    <TD> ACCOUNTNICK</TD>
+    <TD> ####9999</TD>
+ 	 <TD></TD>
+    <TD class=currency>EUR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TD>
+    <TD class="currency"><B>22442.92</B></TD><TD></TD></TR>
+</TBODY></TABLE></DIV><BR/>
+<FORM id="frm_pay_cancel" name="frm_pay_cancel" action="ft_getchal.htm" method="post" onsubmit="return jsf_validate_pay_cancel()" autocomplete = "off">
+<input type="submit" value=""  class="hidden" onclick="jsf_pay_mode(2)" onkeypress="jsf_pay_mode(2)" />
+<br/><DIV class=text><b>Your registered beneficiaries</b></DIV><br/>
+<DIV class=account_tables>
+<TABLE summary="Details of your registered beneficiary accounts.">
+  <TBODY>
+  <TR>
+    <TH class=left_corner><IMG height=17 alt=""
+      src="/images/t.gif" width=12></img></TH>
+    <TH class=cell6><B>Beneficiary Name</B> <A onkeypress=hidethem(2,9)
+      onclick=hidethem(2,9)
+      href="#information_02"><IMG
+      height=15 alt="Information: Beneficiary Name"
+      src="/images/051102_cont_info_smal01.gif" width=15></img></A></TH>
+    <TH class=cell6><B>Account Number</B></TH>
+    <TH class=cell6><B>National Sort Code (NSC)</B> <A
+      onkeypress=hidethem(3,9) onclick=hidethem(3,9)
+      href="#information_03"><IMG
+      height=15 alt="Information: National Sort Code (NSC)"
+      src="/images/051102_cont_info_smal01.gif" width=15></img></A></TH>
+    <TH class=cell6><B>Reference Number</B> <A onkeypress=hidethem(4,9)
+      onclick=hidethem(4,9)
+      href="#information_04"><IMG
+      height=15 alt="Information: Reference Number"
+      src="/images/051102_cont_info_smal01.gif" width=15></img></A></TH>
+    <TH class=cell6><B>Beneficiary Description</B> <A onkeypress=hidethem(5,9)
+      onclick=hidethem(5,9)
+      href="#information_05"><IMG
+      height=15 alt="Information: Beneficiary Description"
+      src="/images/051102_cont_info_smal01.gif" width=15/></A></TH>
+    <TH class=cell6><B>Status</B> <A onkeypress=hidethem(9,9)
+      onclick=hidethem(9,9)
+      href="#information_09"><IMG
+      height=15 alt="Information: Status"
+      src="/images/051102_cont_info_smal01.gif" width=15/></A></TH>
+    <TH class=right_corner><IMG height=17 alt=""
+      src="/images/t.gif" width=5/></TH></TR>
+						<tr>
+						<td ></td>
+						<td ><b>CREDIT CARD</b></td>
+						<td >90000009</td>
+						<td >000000</td>
+						<td >1234567812345786</td>
+						<td >CREDIT CARD</td>
+						<td >Active</td>
+						<td ><input tabindex="1" type='radio' name='rd_pay_cancel' id='rd_pay_cancel0' value='TPPActiveCREDIT+CARD+++++++++++++0' onclick="jsf_bene_details('CREDIT CARD', '90000009', '000000', '1234567812345786', 'CREDIT CARD')" onkeypress="jsf_bene_details('CREDIT CARD', '90000009', '000000', '1234567812345786', 'CREDIT CARD')"/></td>
+						</tr>
+						<tr>
+						<td class="grey"></td>
+						<td class="grey"><b>OTHER CARD</b></td>
+						<td class="grey">90000009</td>
+						<td class="grey">000000</td>
+						<td class="grey">8765432187654321</td>
+						<td class="grey">Another Card</td>
+						<td class="grey">Active</td>
+						<td class="grey"><input tabindex="2" type='radio' name='rd_pay_cancel' id='rd_pay_cancel1' value='TPPActiveOther+CARD++++++++++++2' onclick="jsf_bene_details('OTHER CARD', '90000009', '000000', '8765432187654321', 'Another Card')" onkeypress="jsf_bene_details('OTHER CARD', '90000009', '000000', '8765432187654321', 'Another Card')"/></td>
+						</tr>
+						<tr>
+						<td ></td>
+						<td ><b>DOE JOHN</b></td>
+						<td >99999999</td>
+						<td >909090</td>
+						<td ></td>
+						<td >DOE JOHN</td>
+						<td >Active</td>
+						<td ><input tabindex="3" type='radio' name='rd_pay_cancel' id='rd_pay_cancel2' value='TPPActiveDOE+JOHN+++++++++++1' onclick="jsf_bene_details('DOE JOHN', '99999999', '909090', '', 'DOE JOHN')" onkeypress="jsf_bene_details('DOE JOHN', '99999999', '909090', '', 'DOE JOHN')"/></td>
+						</tr>
+						<tr>
+						<td class="grey"></td>
+						<td class="grey"><b>John Doe</b></td>
+						<td class="grey">12345678</td>
+						<td class="grey">999999</td>
+						<td class="grey">OtherBank</td>
+						<td class="grey">Comment</td>
+						<td class="grey">Inactive</td>
+						<td class="grey"><input tabindex="4" type='radio' name='rd_pay_cancel' id='rd_pay_cancel3' value='TPPInactiveJOHN+DOE+++++++++++3' onclick="jsf_bene_details('John Doe', '12345678', '999999', 'OtherBank', 'Comment')" onkeypress="jsf_bene_details('John Doe', '12345678', '999999', 'OtherBank', 'Comment')"/></td>
+						</tr>
+    </TBODY></TABLE></DIV>
+    <BR/>
+<table><tr><td class="white">
+					<input type="submit" name="addbene" id="addbene" value="Add a new Beneficiary" tabindex="5"  class="input_image_delben" onclick="jsf_pay_mode(3)" onkeypress="jsf_pay_mode(3)" />
+</td><td align=right class="white">
+					<input type="submit" name="deletebene" id="deletebene" value="Delete a Beneficiary" tabindex="13"  class="input_image_delben" onclick="jsf_pay_mode(1)" onkeypress="jsf_pay_mode(1)" />
+</td></tr>
+<tr><td class="white">
+
+</td><td align=right class="white">
+					<input type="submit" name="activatebenf" id="activatebenf" value="Activate a Beneficiary" tabindex="6"  class="input_image_delben" onclick="jsf_pay_mode(4)" onkeypress="jsf_pay_mode(4)" />
+</td></tr></table>
+<DIV class=right>
+					<input type="hidden" value="####1111" name="hid_pay_youraccount" id="hid_pay_youraccount" />
+					<input type="hidden" value="415445" name="hid_pay_yournsc" id="hid_pay_yournsc" />
+					<input type="hidden" value="" name="hid_pay_selaccount" id="hid_pay_selaccount" />
+					<input type="hidden" value="" name="hid_pay_selnsc" id="hid_pay_selnsc" />
+					<input type="hidden" value="" name="hid_pay_details" id="hid_pay_details" />
+					<input type="hidden" value="" name="hid_pay_mode" id="hid_pay_mode" />
+
+
+<BR/><BR/>
+<DIV class=box_header>
+<DIV class=box_header_left></DIV>
+<DIV class=box_header_mid></DIV>
+<DIV class=box_header_right></DIV></DIV>
+<DIV class=account_tables>
+<TABLE summary="Money transfer form">
+  <TBODY>
+  <TR>
+    <TH class=side>Amount</TH>
+    <TD><INPUT tabindex="8"  id=txt_pay_amount maxLength=12 size=10
+  name=txt_pay_amount></input></TD></TR></TBODY></TABLE>
+<TABLE summary="Money transfer form continued">
+  <TBODY>
+  <TR>
+    <TH class=side_grey><LABEL for=rd_pay_time_today>Process Payment
+      Today</LABEL> <INPUT tabindex="9" onkeypress="jsf_future_pay('no')"
+      id=rd_pay_time_today onclick="jsf_future_pay('no')" type=radio CHECKED
+      value=pay_today name=rd_pay_time></input> <LABEL for=rd_pay_time_future>Schedule
+      Payment for a Future Date</LABEL> <A onkeypress=hidethem(7,9)
+      onclick=hidethem(7,9)
+      href="#information_07"><IMG
+      height=15 alt="Information: Schedule Payment for a Future Date"
+      src="/images/051212_cont_info_smal02.gif" width=15/></A>
+      <INPUT tabindex="10"  onkeypress="jsf_future_pay('yes')" id=rd_pay_time_future
+      onclick="jsf_future_pay('yes')" type=radio value=pay_future
+      name=rd_pay_time></input> </TH></TR></TBODY></TABLE>
+<TABLE summary="Money transfer form continued">
+  <TBODY>
+  <TR>
+    <TH class=side><LABEL class=able id=lbl_pay_date for=txt_pay_date>Date (in
+      format dd/mm/yyyy)</LABEL></TH>
+    <TD><INPUT tabindex="11"  id=txt_pay_date maxLength=10 size=12
+  name=txt_pay_date></input></TD></TR></TBODY></TABLE></DIV><BR/>
+<DIV class=right><INPUT id=hid_pay_availablefunds type=hidden value=1234.60
+name=hid_pay_availablefunds> </input><INPUT tabindex="12"  class=input_image_proc onkeypress=jsf_pay_mode(2) id=proceed onclick=jsf_pay_mode(2) type=submit value=Proceed name=proceed/>
+</DIV></FORM><BR/><BR/>
+<DIV class=information>
+<DIV class=info_header>
+<DIV class=info_header_left><IMG height=23 alt=""
+src="/images/t.gif" width=4/> </DIV>
+<DIV class=info_header_mid><IMG height=15 alt=Information
+src="/images/051102_cont_info_smal01.gif" width=15/>
+<B>Information</B> </DIV>
+<DIV class=info_header_right><IMG height=23 alt=""
+src="/images/t.gif" width=4/> </DIV></DIV>
+<DIV id=newname000>
+<DIV class=inf_bg01>
+<DIV class=inf_bg02>
+<DIV class=inf_text> </DIV>
+<DIV class=info_footer>
+<DIV class=info_footer_left><IMG height=4 alt=""
+src="/images/t.gif" width=4/> </DIV>
+<DIV class=info_footer_right><IMG height=4 alt=""
+src="/images/t.gif" width=4/> </DIV></DIV></DIV></DIV></DIV>
+<DIV class=invisible id=newname001>
+<DIV class=inf_bg01>
+<DIV class=inf_bg02>
+<DIV class=inf_text><A name=information_01></A>
+<H3>Nickname</H3>For your greater security, nicknames can be given to your
+accounts to avoid showing full account numbers. You can now change your account
+nickname by clicking the account link and selecting the "Change Nickname" option
+from the menu bar on the left of the screen. </DIV>
+<DIV class=info_footer>
+<DIV class=info_footer_left><IMG height=4 alt=""
+src="/images/t.gif" width=4/> </DIV>
+<DIV class=info_footer_right><IMG height=4 alt=""
+src="/images/t.gif" width=4/> </DIV></DIV></DIV></DIV></DIV>
+<DIV class=invisible id=newname002>
+<DIV class=inf_bg01>
+<DIV class=inf_bg02>
+<DIV class=inf_text><A name=information_02></A>
+<H3>Beneficiary Name</H3>Beneficiary name is the name of the person or
+organisation you are paying. </DIV>
+<DIV class=info_footer>
+<DIV class=info_footer_left><IMG height=4 alt=""
+src="/images/t.gif" width=4/> </DIV>
+<DIV class=info_footer_right><IMG height=4 alt=""
+src="/images/t.gif" width=4/> </DIV></DIV></DIV></DIV></DIV>
+<DIV class=invisible id=newname003>
+<DIV class=inf_bg01>
+<DIV class=inf_bg02>
+<DIV class=inf_text><A name=information_03></A>
+<H3>National Sort Code (NSC)</H3>This is a six digit code used to identify your
+bank branch. It can be obtained by phoning your local branch or checking your
+bank's website. </DIV>
+<DIV class=info_footer>
+<DIV class=info_footer_left><IMG height=4 alt=""
+src="/images/t.gif" width=4/> </DIV>
+<DIV class=info_footer_right><IMG height=4 alt=""
+src="/images/t.gif" width=4/> </DIV></DIV></DIV></DIV></DIV>
+<DIV class=invisible id=newname004>
+<DIV class=inf_bg01>
+<DIV class=inf_bg02>
+<DIV class=inf_text><A name=information_04></A>
+<H3>Reference Number</H3>Reference Number refers to your payment account number
+e.g. your Electricity account number. </DIV>
+<DIV class=info_footer>
+<DIV class=info_footer_left><IMG height=4 alt=""
+src="/images/t.gif" width=4/> </DIV>
+<DIV class=info_footer_right><IMG height=4 alt=""
+src="/images/t.gif" width=4/> </DIV></DIV></DIV></DIV></DIV>
+<DIV class=invisible id=newname005>
+<DIV class=inf_bg01>
+<DIV class=inf_bg02>
+<DIV class=inf_text><A name=information_05></A>
+<H3>Beneficiary Description</H3>Beneficiary Description is a reminder of who is
+being paid. </DIV>
+<DIV class=info_footer>
+<DIV class=info_footer_left><IMG height=4 alt=""
+src="/images/t.gif" width=4/> </DIV>
+<DIV class=info_footer_right><IMG height=4 alt=""
+src="/images/t.gif" width=4/> </DIV></DIV></DIV></DIV></DIV>
+<DIV class=invisible id=newname006>
+<DIV class=inf_bg01>
+<DIV class=inf_bg02>
+<DIV class=inf_text><A name=information_06></A>
+<H3>Available Funds</H3>Available funds means the balance of your account
+including any overdraft facility available to you on this account and subject to
+clearance of any uncleared cheques lodged recently. </DIV>
+<DIV class=info_footer>
+<DIV class=info_footer_left><IMG height=4 alt=""
+src="/images/t.gif" width=4/> </DIV>
+<DIV class=info_footer_right><IMG height=4 alt=""
+src="/images/t.gif" width=4/> </DIV></DIV></DIV></DIV></DIV>
+<DIV class=invisible id=newname007>
+<DIV class=inf_bg01>
+<DIV class=inf_bg02>
+<DIV class=inf_text><A name=information_07></A>
+<H3>Schedule Payment for a Future Date</H3>If the future date scheduled is not a
+working day, payment will be scheduled to take place on the following working
+day. </DIV>
+<DIV class=info_footer>
+<DIV class=info_footer_left><IMG height=4 alt=""
+src="/images/t.gif" width=4/> </DIV>
+<DIV class=info_footer_right><IMG height=4 alt=""
+src="/images/t.gif" width=4/> </DIV></DIV></DIV></DIV></DIV>
+<DIV class=invisible id=newname008>
+<DIV class=inf_bg01>
+<DIV class=inf_bg02>
+<DIV class=inf_text><A name=information_08></A>
+You can make a payment to the accounts listed below by selecting
+from the list and entering the amount and selecting <B>"Proceed"</B>.
+<BR/><BR/>You can also choose to schedule this payment at a later date by
+selecting the <B>"Schedule Payment for a Future Date"</B> and entering the date
+you want the payment to leave your account. Please note it may take up to three
+working days for this payment to reach the destination account, subject to
+sufficient funds being available at that time. <BR/><BR/>You can delete an account
+by ticking the box beside the relevent account and selecting <B>"Delete a
+Beneficiary"</B>. <BR/><BR/>
+If you do not see the Beneficiary that you would like to pay, you can add a new Beneficiary by selecting <B>"Add a new Beneficiary"</B> button.
+</DIV>
+<DIV class=info_footer>
+<DIV class=info_footer_left><IMG height=4 alt=""
+src="/images/t.gif" width=4/> </DIV>
+<DIV class=info_footer_right><IMG height=4 alt=""
+src="/images/t.gif" width=4/> </DIV></DIV></DIV></DIV></DIV>
+<DIV class=invisible id=newname009>
+<DIV class=inf_bg01>
+<DIV class=inf_bg02>
+<DIV class=inf_text><A name=information_09></A>
+<H3>Status of Beneficiary</H3>
+<BR/><B>Active</B>: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; You can make payments to this beneficiary subject to normal 
+payment terms and conditions.
+<BR/>
+<BR/><B>Inactive</B>: &nbsp;&nbsp; You cannot make payments to this beneficiary until you activate 
+it with your 7 Digit Activation Code.
+</DIV>
+<DIV class=info_footer>
+<DIV class=info_footer_left><IMG height=4 alt=""
+src="/images/t.gif" width=4/> </DIV>
+<DIV class=info_footer_right><IMG height=4 alt=""
+src="/images/t.gif" width=4/> </DIV></DIV></DIV></DIV></DIV>
+</DIV><BR/><BR/>
+<HR/>
+<div class="footer">
+<a href="/contact/index.html">Contact Us</a> | <a href="/security/index.html">Security - Yours &amp; Ours</a> | <a href="/security/terms.html">Terms &amp; Conditions</a> | <a href="/security/PrivacyPolicy.html">Privacy Policy</a> | <a href="/about/faq.html">FAQs</a>
+<br />
+<span class="smallprint">Bank of Ireland 365 is a registered business name of Bank of Ireland. Bank of Ireland incorporated in Ireland with Limited Liability. Bank of Ireland is regulated by the Financial Regulator and authorised and subject to limited regulation by the Financial Services Authority.  Details about the extent of our authorisation and regulation by the Financial Services Authority are available from us on request.</span>
+<br />
+<span class="smallprint">Registered Office - Head Office, Lower Baggot Street, Dublin 2. Registered Number - C-1.&copy 2009 Bank of Ireland.</span>
+</div>
+</DIV></BODY></HTML>

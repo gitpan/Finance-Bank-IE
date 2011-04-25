@@ -1,7 +1,11 @@
-#!/usr/bin/perl -w
+#!perl
 #
-# Banking 365ish
+# Finance::Bank::IE example code
 #
+use lib qw( ./lib );
+use strict;
+use warnings;
+
 use Finance::Bank::IE::BankOfIreland;
 use POSIX;
 use Getopt::Long;
@@ -24,7 +28,7 @@ my @accounts = Finance::Bank::IE::BankOfIreland->check_balance( \%config );
 
 foreach ( @accounts ) {
     printf "%8s : %s %8.2f\n",
-	  $_->{account_no}, $_->{currency}, $_->{balance};
+      $_->{account_no}, $_->{currency}, $_->{balance};
 }
 
 print "=" x 79 . "\n";

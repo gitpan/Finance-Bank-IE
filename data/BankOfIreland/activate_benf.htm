@@ -1,0 +1,117 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<?xml version="1.0" encoding="iso-8859-1"?>
+<HTML xmlns="http://www.w3.org/1999/xhtml">
+<HEAD>
+  <TITLE>Bank of Ireland 365 Online</TITLE>
+  <LINK href="/css/content.css" type=text/css rel=stylesheet />
+	 <SCRIPT src="/script/js_funcs01_common.js" type=text/javascript></SCRIPT>
+	 <SCRIPT src="/script/errorMessages.js" type=text/javascript></SCRIPT>
+	 <SCRIPT src="/script/js_funcs22_activate.js" type=text/javascript></SCRIPT>
+  <META http-equiv=Content-Type content="text/html; charset=iso-8859-1" />
+  <META http-equiv=pragma content=no-cache />
+  <META http-equiv=Cache-Control content=no-cache />
+  <META http-equiv=Expires content="Wed, 30 Jan 1980 09:00:00 GMT" />
+</HEAD>
+<BODY onLoad="hidethem(0,1); document.getElementById('txtActivationCode').focus(); document.getElementById('Activation_Form').reset(); ">
+<DIV class=page>
+<H1>Activate Beneficiary
+<A onKeyPress="hidethem(1,1)" onClick="hidethem(1,1)" href="#information_01">
+<IMG alt="Information: Activate Beneficiary" src="/images/info_big_white.gif"></img></A>
+</H1>
+<HR/>
+<DIV class=text>&nbsp;&nbsp;<B>Please enter the 7 Digit Activation Code as printed on your letter and click "Proceed".</B></DIV>
+<BR/>
+<DIV class=text>
+<TABLE summary="Activate Beneficiary" width="100%" cellspacing="8">
+<TBODY>
+<TR>
+<TD class=white width="25%"><B>Beneficiary Name:</B></TD>
+<TD class=white width="75%">John Doe</TD>
+</TR>
+<TR>
+<TD class=white width="25%"><B>Account Number:</B></TD>
+<TD class=white width="75%">12345678</TD>
+</TR>
+<TR>
+<TD class=white width="25%"><B>Branch:</B></TD>
+<TD class=white width="75%">999999</TD>
+</TR>
+<TR>
+<TD class=white width="25%"><B>Reference:</B></TD>
+<TD class=white width="75%">ACCOUNTREF</TD>
+</TR>
+</TBODY>
+</TABLE>
+</DIV>
+<form id="Activation_Form" action="activate_benf_conf.htm" method="post" autocomplete = "off" onsubmit="return jsfValidateActCodeInput(txtActivationCode);">
+<input type="hidden" value="TPPInactiveJOHN+DOE+++++++++++3" name="rowID" id="rowID" />
+<BR/>
+<BR/>
+<Div class=text>
+<TABLE summary="Activate Code - Proceed Button" width="100%" cellspacing="5">
+<TBODY>
+<TR>
+<TD class=white width="25%"><B>Activation Code:</B></TD>
+<TD class=white width="75%">&nbsp;&nbsp;&nbsp;&nbsp;<INPUT id=txtActivationCode type=text value="" name=txtActivationCode maxLength=7 size=10></INPUT></TD>
+</TR>
+<TR>
+<TD class="white" colspan="2" width="100%">&nbsp;</TD>
+</TR>
+<TR>
+<TD class=white width="25%">&nbsp;</TD>
+<TD class=white width="75%"><input type="submit" value="Proceed" name="proceed" id="proceed" alt="Proceed" class="input_image_proc"/></TD>
+</TR>
+</TBODY>
+</TABLE>
+</div>
+</form>
+<BR/><BR/>
+<DIV class=information>
+<DIV class=info_header>
+	<DIV class=info_header_left><IMG height=23 alt=""
+	src="/images/t.gif" width=4/>
+	</DIV>
+	<DIV class=info_header_mid><IMG height=15 alt=Information
+	src="/images/051102_cont_info_smal01.gif" width=15/>
+	<B>Information</B>
+	</DIV>
+	<DIV class=info_header_right><IMG height=23 alt=""
+	src="/images/t.gif" width=4/>
+	</DIV>
+</DIV>
+<DIV id=newname000>
+<DIV class=inf_bg01>
+<DIV class=inf_bg02>
+<DIV class=inf_text>
+<a name="information_00"></a>
+&nbsp;
+</DIV>
+<DIV class=info_footer>
+<DIV class=info_footer_left><IMG height=4 alt=""
+src="/images/t.gif" width=4></img> </DIV>
+<DIV class=info_footer_right><IMG height=4 alt=""
+src="/images/t.gif" width=4/> </DIV></DIV></DIV></DIV></DIV>
+<DIV class=invisible id=newname001>
+<DIV class=inf_bg01>
+<DIV class=inf_bg02>
+<DIV class=inf_text><A name=information_01></A>
+<H3>Activate Beneficiary</H3>
+<P>You will have 3 attempts to enter your 7 Digit Activation Code correctly.</P>
+<P>If you enter the Activation Code incorrectly 3 times, the code will then be blocked and a new code will automatically
+<BR/>be issued to you in the post.</P></DIV>
+<DIV class=info_footer>
+<DIV class=info_footer_left><IMG height=4 alt=""
+src="/images/t.gif" width=4/> </DIV>
+<DIV class=info_footer_right><IMG height=4 alt=""
+src="/images/t.gif" width=4/> </DIV></DIV></DIV></DIV></DIV>
+</DIV>
+<BR/>
+<HR/>
+<div class="footer">
+<a href="/contact/index.html">Contact Us</a> | <a href="/security/index.html">Security - Yours &amp; Ours</a> | <a href="/security/terms.html">Terms &amp; Conditions</a> | <a href="/security/PrivacyPolicy.html">Privacy Policy</a> | <a href="/about/faq.html">FAQs</a>
+<br />
+<span class="smallprint">Bank of Ireland 365 is a registered business name of Bank of Ireland. Bank of Ireland incorporated in Ireland with Limited Liability. Bank of Ireland is regulated by the Financial Regulator and authorised and subject to limited regulation by the Financial Services Authority.  Details about the extent of our authorisation and regulation by the Financial Services Authority are available from us on request.</span>
+<br />
+<span class="smallprint">Registered Office - Head Office, Lower Baggot Street, Dublin 2. Registered Number - C-1.&copy 2009 Bank of Ireland.</span>
+</div>
+</DIV></BODY></HTML>

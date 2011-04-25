@@ -1,25 +1,14 @@
-Bank Of Ireland and MBNA Ireland (actually MBNA Europe) online banking
-access, based on existing Finance::Banking interface.
+Bank Of Ireland, MBNA Ireland (actually MBNA Europe), and Permanent
+TSB (Ireland) online banking access, based on existing
+Finance::Banking interface.
 
-Finance::Bank::IE::BankOfIreland supports check_balance,
-account_details and funds_transfer methods. Finance::Bank::IE::MBNA
-supports the check_balance method.
+BankOfIreland.pm is the most complete in that it covers funds
+transfer. All public functions take a hashref as an optional last
+parameter to specify the credentials to be used if a login page is
+encountered. The credentials are cached in the class and will be
+retrieved from same if none are provided.
 
-MBNA check_balance takes a username & password. BoI check_balance
-takes a hash containing user => username, pin => 6-digit PIN, contact
-=> last four digits of contact number, dob => date of birth in
-DD/MM/YYYY format.
+See individual perldocs and sample code for more.
 
-check_balance for both returns the account number, the currency, and
-the balance, since that's all I get to work with from the
-websites. Also, the account numbers are only partial. MBNA account
-info also includes a 'minimum due' field, currently ripped straight
-off the page and stashed in $_->{min} in the form "<amt> due by
-<date>".
-
-funds_transfer takes a "from" account, a "to" account, and an
-amount. The account parameters can either be a
-Finance::Bank::IE::Account object or an account nickname. Per BoI's
-site, the destination account can also be a previously-registered
-account number for third-party payments. The function returns the
-receipt page.
+As noted by the code on which I based this: these modules are intended
+to access your money online. Be cautious with them!

@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Finance-Bank-IE
-version:            0.24
+version:            0.25
 abstract:           ~
 author:
     - Ronan Waide <waider@waider.ie>
@@ -14,6 +14,7 @@ requires:
     Date::Parse:       0
     HTML::Entities:    0
     HTML::TokeParser:  0
+    Test::MockModule:  0
     WWW::Mechanize:    0
 no_index:
     directory:

@@ -1,107 +1,129 @@
-#!/usr/bin/perl -w
-#
-# Interface to MBNA's website
-#
+=head1 NAME
+
+Finance::Bank::IE::MBNA - Finance::Bank interface for MBNA (Ireland)
+
+=head1 DESCRIPTION
+
+This module implements the Finance::Bank 'API' for MBNA (Ireland)'s online
+credit card service.
+
+=over
+
+=cut
 package Finance::Bank::IE::MBNA;
+
+use strict;
+use warnings;
 
 our $VERSION = "0.24";
 
-use strict;
-use WWW::Mechanize;
+use base qw( Finance::Bank::IE );
+
 use HTML::TokeParser;
 use HTML::Entities;
 use POSIX;
 use Carp;
 
-# package-local
-my $agent;
-my %cached_config;
-
 # fields in detail listing
 # Dear MBNA, your HTML is awful. empty <td> tags are the devil's work.
 use constant {
     TXDATE => 1,
-    POSTDATE => 3,
-    MCC => 5,
-    RATE => 7,
-    DESC => 9,
-    AMT => 11,
-    CRED => 13,
-};
+      POSTDATE => 3,
+        MCC => 5,
+          RATE => 7,
+            DESC => 9,
+              AMT => 11,
+                CRED => 13,
+            };
 
-# attempt to log in
-# returns a logged-in WWW::Mechanize object, or undef
+=item * $self->login( [config]
+
+Attempt to log in, using specified config or cached config. Returns undef on failure.
+
+=cut
 sub login {
     my ( $self, $confref ) = @_;
 
-    $confref ||= \%cached_config;
+    $confref ||= $self->cached_config();
 
     my ( $user, $password ) = ( $confref->{user}, $confref->{password} );
 
     if ( !defined( $user ) or !defined( $password )) {
-        croak( "login requires a username and password" );
+        $self->_dprintf( "login requires a username and password\n" );
+        return;
     }
 
-    $cached_config{user} = $user;
-    $cached_config{password} = $password;
+    $self->cached_config( $confref );
 
-    if ( !defined( $agent )) {
-        $agent = WWW::Mechanize->new( env_proxy => 1, autocheck => 1 );
-        $agent->env_proxy;
-
-        $agent->quiet( 0 );
-        $agent->agent_alias( 'Windows IE 6' );
-    }
-
-    my $res = $agent->get( 'https://www.bankcardservices.co.uk/' );
+    my $res = $self->_agent()->get( 'https://www.bankcardservices.co.uk/' );
+    $self->_save_page();
 
     # without this, the redirect link text is unfindable.  thank
     # you... netscape?  doubleplus thankyou for using meta instead of
     # a redirect code
-    my $c = $agent->content();
+    my $c = $self->_agent()->content();
     $c =~ s@url=([^"].*)>@url=\"$1"@i;
-    $agent->update_html( $c );
+    $self->_agent()->update_html( $c );
 
-    if ( $agent->find_link( tag => "meta" )) {
-        $agent->follow_link( tag => "meta" );
+    if ( $self->_agent()->find_link( tag => "meta" )) {
+        $self->_agent()->follow_link( tag => "meta" );
+        $self->_save_page();
     }
 
     # log in
-    if ( $agent->content() !~ /olb_login/ ) {
-        croak( "Login Form not found" );
+    if ( $self->_agent()->content() !~ /olb_login/ ) {
+        $self->_dprintf( "Login Form not found\n" );
+        return;
     }
 
-    print STDERR "# logging in\n" if $ENV{DEBUG};
-    $res = $agent->submit_form(
-        form_name => 'olb_login',
-        fields => {
-            userID => $user,
-            password => $password,
-        },
-        );
+    $self->_dprintf( "logging in\n" );
+    $res = $self->_agent()->submit_form(
+                                        form_name => 'olb_login',
+                                        fields => {
+                                                   userID => $user,
+                                                  },
+                                       );
+    $self->_save_page();
 
   RETRY:
-    if ( !defined( $res )) {
-        croak( "Failed to log in" );
+    if ( !$res->is_success ) {
+        $self->_dprintf( "Failed to log in\n" );
+        return;
     }
 
-    $c = $agent->content();
+    $c = $self->_agent()->content();
 
     # August 2009: security "improved" by putting login on one page
     # and password on another. Noone else seems to need to do this.
     if ( $c =~ /siteKeyConfirmForm/si ) {
-        print STDERR "# site key confirm\n" if $ENV{DEBUG};
-        $res = $agent->submit_form(
-            form_name => 'siteKeyConfirmForm',
-            fields => {
-                password => $password,
-            },
-            );
-        if ( !defined( $res )) {
-            croak( "Failed to log in" );
+        $self->_dprintf( "site key confirm\n" );
+        $res = $self->_agent()->submit_form(
+                                            form_name => 'siteKeyConfirmForm',
+                                            fields => {
+                                                       password => $password,
+                                                      },
+                                           );
+        $self->_save_page();
+        if ( !$res->is_success ) {
+            $self->_dprintf( "Failed to log in\n" );
+            return;
         }
 
-        $c = $agent->content();
+        $c = $self->_agent()->content();
+    }
+
+    # maybe you've chosen to hide unregistered accounts?
+    if ( $self->_agent()->find_link( url => 'RegisteredAccountsScreen?show=true' )) {
+        $self->_dprintf( "revealing inactive accounts\n" );
+        $res = $self->_agent()->follow_link( url => 'RegisteredAccountsScreen?show=true' );
+        $self->_save_page();
+
+        if ( !$res->is_success ) {
+            $self->_dprintf( "Failed to reveal inactive accounts\n" );
+            return;
+        }
+
+        $c = $self->_agent()->content();
     }
 
     # Check that we got logged in
@@ -111,20 +133,27 @@ sub login {
 
             carp( "Incorrect username/password\n" );
             return undef;
-        } elsif ( $c =~ /update your e-mail address/si ){
-            print STDERR "# accepting email address\n" if $ENV{DEBUG};
+        } elsif ( $c =~ /update your e-mail address/si ) {
+            $self->_dprintf( "accepting email address\n" );
             # this assumes your email address is (a) set and (b) correct
-            $res = $agent->submit_form();
+            $res = $self->_agent()->submit_form();
+            $self->_save_page();
             goto RETRY;
         } elsif ( $c !~ /AccountSnapshotScreen/si ) {
             # we failed for some reason
-            dumppage( $c );
-            croak( "Failed to log in for unknown reason, check ~/mbna.dump" );
+            $self->_dprintf( "Failed to log in for unknown reason.\n" );
+            return;
         }
     }
 
-    return $agent;
+    return $self->_agent();
 }
+
+=item * $self->check_balance()
+
+Fetch all account balances from the account summary page. Returns an array of Finance::Bank::IE::MBNA::Account objects.
+
+=cut
 
 sub check_balance {
     my ( $self, $confref ) = @_;
@@ -133,11 +162,11 @@ sub check_balance {
 
     $self->login( $confref ) or return;
 
-    my $c = $agent->content;
+    my $c = $self->_agent()->content;
 
     # assume you've got multiple accounts...
     @cards =
-        $agent->find_all_links( url_regex => qr/AccountSnapshotScreen/ );
+      $self->_agent()->find_all_links( url_regex => qr/AccountSnapshotScreen/ );
 
     if ( @cards ) {
         # uniquify it
@@ -148,31 +177,43 @@ sub check_balance {
         @cards = ();
 
         for my $card ( values %cards ) {
-            print STDERR "# fetching card summary (" . $card->text . ")\n"
-                if $ENV{DEBUG};
-            my $res = $agent->get( $card->url_abs());
+            $self->_dprintf( "fetching card summary (" . $card->text . ")\n" );
+            my $res = $self->_agent()->get( $card->url_abs());
+            $self->_save_page();
             if ( $res->is_success()) {
-                my $summary = parse_account_summary( $agent->content );
+                my $summary = parse_account_summary( $self, $self->_agent()->content );
                 my ( $type, $account ) = $card->text =~
-                    m@MBNA (.*?ard), account number ending ([0-9]+)@;
+                  m@MBNA (.*?ard), account number ending ([0-9]+)@;
                 $summary->{account_type} = $type;
                 $summary->{account_no} = $account;
                 push @accounts, $summary;
+            } else {
+                $self->_dprintf( "Failed to get card summary for " .
+                                 $card->text . "\n" );
             }
         }
+    } else {
+        $self->_dprintf( "No cards found\n" );
     }
 
     @accounts;
 }
 
+=item * $self->account_details( account [,config] )
+
+ Return transaction details from the specified account
+
+=cut
+
 sub account_details {
     my ( $self, $account, $confref ) = @_;
 
     $self->login( $confref );
-    my $c = $agent->content;
+    my $c = $self->_agent()->content;
+    return unless $c;
     if ( $c !~ /Transaction\s+Date/i ) {
         my @cards =
-            $agent->find_all_links( url_regex => qr /AccountSnapshotScreen/ );
+          $self->_agent()->find_all_links( url_regex => qr /AccountSnapshotScreen/ );
         if ( @cards ) {
             my $found = 0;
             for my $ca ( @cards ) {
@@ -181,32 +222,37 @@ sub account_details {
                     last;
                 }
             }
-            croak( "no such account $account" ) unless $found;
-
-            print STDERR "# fetching card details (" . $found->text . ")\n"
-                if $ENV{DEBUG};
-            my $res = $agent->get( $found->url_abs());
-            if ( !$res->is_success()) {
-                croak( "failed to get detail page for $account" );
+            if ( !$found ) {
+                $self->_dprintf( "no such account $account\n" );
+                return;
             }
+
+            $self->_dprintf( "fetching card details (" . $found->text . ")\n" );
+            my $res = $self->_agent()->get( $found->url_abs());
+            $self->_save_page();
+            if ( !$res->is_success()) {
+                $self->_dprintf("failed to get detail page for $account\n" );
+                return;
+            }
+        } else {
+            $self->_dprintf("no cards found\n");
+            return;
         }
     }
 
     # one way or another, we're on the right page now
-    $c = $agent->content;
+    $c = $self->_agent()->content;
 
     my $parser = new HTML::TokeParser( \$c );
 
     my @activity;
-    push @activity,
-    [ "Transaction Date", "Posting Date", "MCC", "Description", "Debit", "Credit" ];
     my @line;
     while ( my $tag = $parser->get_tag( "td", "/tr" )) {
         if ( $tag->[0] eq "/tr" ) {
             if ( @line ) {
                 $line[MCC] ||= ""; # no longer provided in summary
                 # clean up the data a bit
-                $line[TXDATE] =~ s/\xa0//; # nbsp, I guess
+                $line[TXDATE] =~ s/\xa0//;         # nbsp, I guess
                 $line[TXDATE] ||= $line[POSTDATE]; # just in case
                 my ( $d, $m, $y ) = split( /\//, $line[TXDATE]);
                 $line[TXDATE] = mktime( 0, 0, 0, $d, $m - 1, $y - 1900 );
@@ -216,14 +262,14 @@ sub account_details {
                 $line[MCC] =~ s/^\s+$//;
 
                 push @activity,
-                [
-                 $line[TXDATE],
-                 $line[POSTDATE],
-                 $line[MCC],
-                 $line[DESC],
-                 $line[CRED] eq "CR" ? 0 : $line[AMT],
-                 $line[CRED] eq "CR" ? $line[AMT] : 0,
-                ];
+                  [
+                   $line[TXDATE],
+                   $line[POSTDATE],
+                   $line[MCC],
+                   $line[DESC],
+                   $line[CRED] eq "CR" ? 0 : $line[AMT],
+                   $line[CRED] eq "CR" ? $line[AMT] : 0,
+                  ];
 
                 @line = ();
             }
@@ -244,24 +290,39 @@ sub account_details {
         }
     }
 
+    if ( @activity ) {
+        unshift  @activity,
+          [ "Transaction Date", "Posting Date", "MCC", "Description", "Debit", "Credit" ];
+    }
+
     return @activity;
 }
 
-sub parse_account_summary {
-    my $content = shift;
+=item * $self->parse_account_summary
 
+Internal function to parse account summary pages.
+
+=cut
+
+sub parse_account_summary {
+    my $self = shift;
+    my $content = shift;
     my %detail;
 
     ( $detail{account_id} ) = $content =~ /acctID=([^"]+)"/s;
 
+    $self->_dprintf( "parsing $detail{account_id}\n" );
+
     my $parser = new HTML::TokeParser( \$content );
-    while( my $t = $parser->get_tag( "div" )) {
+    while ( my $t = $parser->get_tag( "div" )) {
         my $class = $t->[1]{class} || "";
 
         if ( $class =~ /\bcolumn1\b/ ) {
             my $title = $parser->get_trimmed_text( "/div" );
             $t = $parser->get_tag( "div" );
             my $text = $parser->get_trimmed_text( "/div" );
+
+            $self->_dprintf( "title: $title, text: $text\n" );
 
             if ( $title =~ /pending transactions/i ) {
                 $title = 'unposted';
@@ -270,7 +331,7 @@ sub parse_account_summary {
                 $title = 'min';
             } elsif ( $title =~ /payment to be received/i ) {
                 $title = 'due';
-            } elsif ( $title =~ /current balance/i ) {
+            } elsif ( $title =~ /your outstanding balance/i ) {
                 $title = 'balance';
                 $text =~ s/[^0-9]+refresh balance//i;
             } elsif ( $title =~ /available for cash/i ) {
@@ -278,6 +339,8 @@ sub parse_account_summary {
             } else {
                 next;
             }
+
+            $self->_dprintf( "=> title: $title, text: $text\n" );
 
             $detail{$title} = $text;
         }
@@ -291,10 +354,13 @@ sub parse_account_summary {
         $detail{$field} = encode_entities( $detail{$field} );
         $detail{$field} =~ s/&nbsp;/ /g;
         if ( grep { $_ eq $field } qw( min space balance unposted )) {
-            my ( $currency, $amount ) = $detail{$field} =~ m/^([^0-9]+)([0-9,.]+)$/;
+            my ( $currency, $amount, $credit ) = $detail{$field} =~ m/^([^0-9]+)([0-9,.]+(CR)?)$/;
             $currency = 'EUR' if $currency eq '&euro;';
             $detail{currency} = $currency;
             $amount =~ s/,//g;
+            if ( $credit && $credit =~ /CR/ ) {
+                $amount = - $amount;
+            }
             $detail{$field} = $amount;
         }
 
@@ -316,10 +382,6 @@ sub parse_account_summary {
     $mon = 12 if $mon eq 'Dec';
     $detail{min} = $detail{min} . " due by $day/$mon/$year";
 
-    # untested as I don't have a card in credit right now :)
-    if ( !( $detail{balance} =~ s/CR// )) {
-        $detail{balance} = -$detail{balance};
-    }
     $detail{unposted} ||= 0;
 
     bless \%detail, "Finance::Bank::IE::MBNA::Account";
@@ -327,19 +389,9 @@ sub parse_account_summary {
     \%detail;
 }
 
-sub dumppage {
-    # avoid nasty surprises
-    if ( !$ENV{DEBUG} ) {
-        return;
-    }
-    my $c = shift;
-    if ( open( DUMP, ">" . $ENV{HOME} . "/mbna.dump" )) {
-        print DUMP $c;
-        close( DUMP );
-    } else {
-        print STDERR "unable to create dumpfile: $!";
-    }
-}
+=back
+
+=cut
 
 package Finance::Bank::IE::MBNA::Account;
 

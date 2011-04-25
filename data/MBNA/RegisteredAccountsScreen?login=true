@@ -1,0 +1,615 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xml:lang="en" lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-type" content="text/html; charset=iso-8859-1"/>
+<link rel="stylesheet" href="/NASApp/NetAccessXX/olbweb/uk/en/common/dynamicCommon.css" type="text/css"/>
+<link rel="stylesheet" href="/NASApp/NetAccessXX/olbweb/uk/en/mbnaeire/mbna.css" type="text/css"/>
+<link rel="stylesheet" href="/NASApp/NetAccessXX/olbweb/uk/en/common/jquery_css/jquery-ui-1.8.custom.css" type="text/css"/>
+<script language="JavaScript" type="text/javascript">
+				/*<![CDATA[*/
+				window.name = "netAccessMain";
+
+				
+				try
+				{
+  					document.execCommand('BackgroundImageCache', false, true);
+				} catch(e) {}
+
+				    
+                function topFrame(){
+                   if (top != self) {top.location=self.location;}
+               }
+				/*]]>*/</script>
+<script language="JavaScript" type="text/javascript">
+
+				function RTeKnowledge(url)
+				{
+					winHeight = 760;
+					winWidth = 640;
+					winTop = (screen.height/2) - (winHeight/2)
+					winLeft = (screen.width/2) - (winWidth/2)
+					features = 'toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=no,resizable=no,height=' + winHeight + ',width=' + winWidth + ',top=' + winTop+',left=' + winLeft;
+					myWindow = window.open('https://' + url , 'eKnowledge', features);
+				}
+
+				</script>
+<script language="javascript" type="text/javascript" src="/NASApp/NetAccessXX/olbweb/uk/en/mbna/js/jquery-1.4.2.min.js">
+<!---->
+</script>
+<script language="javascript" type="text/javascript" src="/NASApp/NetAccessXX/olbweb/uk/en/mbna/js/jquery-ui-1.8.custom.dialog.min.js">
+<!---->
+</script>
+<script language="javascript" type="text/javascript" src="/NASApp/NetAccessXX/olbweb/uk/en/mbna/js/jquery-zoom-plugin.js">
+<!---->
+</script>
+<script language="javascript" type="text/javascript" src="/NASApp/NetAccessXX/olbweb/uk/en/mbna/js/swfobject.js">
+<!---->
+</script>
+<script language="javascript" type="text/javascript" src="/NASApp/NetAccessXX/olbweb/uk/en/mbna/js/inlineContextualHelp.js">
+<!---->
+</script>
+<script type="text/javascript" language="JavaScript" src="/NASApp/NetAccessXX/olbweb/uk/en/mbna/js/dob.js">/**/</script>
+<script type="text/javascript" language="javascript">
+	    /*<![CDATA[*/
+	    
+	    var timeoutPopupTimer;
+	    var expiredTimeoutPopupTimer;
+
+	    jQuery.noConflict();
+	    jQuery(document).ready(function($) {
+				timeoutPopupTimer = setTimeout('showTimeoutPopup()', 300000);
+	    });
+
+	    function showTimeoutPopup() {
+				clearTimeout(timeoutPopupTimer);
+				jQuery('#timeoutPopup')
+					.dialog({
+					draggable:false,
+					resizable:false,
+					width: 335,
+					closeText:'',
+					title:'',
+					modal: true
+					})
+					.dialog('moveToTop');
+					jQuery('#timeoutPopup').parent().find('.ui-dialog-titlebar').hide();
+                                        jQuery('#timeoutPopup').dialog('moveToTop');
+
+					expiredTimeoutPopupTimer = setTimeout('showExpiredTimeoutPopup()', 300000);
+
+                    document.location.hash = "#timeoutPopup";
+			}
+
+	    function showExpiredTimeoutPopup() {
+				clearTimeout(expiredTimeoutPopupTimer); //changed by Paul (only added this comment) - this line of code seems to be useless why clear the timer that when it expired actually
+																								//		called this function, at this point both timers should have been actually triggered and therefore both should be stopped by now.
+
+				jQuery('#timeoutPopup').dialog('close');
+
+				jQuery('#expiredTimeoutPopup')
+						.dialog({
+						draggable:false,
+						resizable:false,
+						width: 335,
+						closeText:'',
+						title:'',
+						modal: true
+						})
+						.dialog('moveToTop');
+				jQuery('#expiredTimeoutPopup').parent().find('.ui-dialog-titlebar').hide();
+				jQuery('#expiredTimeoutPopup').dialog('moveToTop');
+
+                document.location.hash = "#expiredTimeoutPopup";
+	    }
+
+	    function hideTimeoutPopup() {
+				clearTimeout(expiredTimeoutPopupTimer);
+				jQuery('#timeoutPopup').dialog('close');
+	    }
+
+	    function hideExpiredTimeoutPopup() {
+				jQuery('#expiredTimeoutPopup').dialog('close');
+	    }
+
+	    function getMoreTimeUntilNextTimeout() {
+				jQuery.ajax({
+						url: "SessionExtenderServlet",
+						cache: false,
+						success: resetTimoutPopupTimer,
+						error: showTimeoutServerCommunicationError});
+				jQuery('#timeoutPopup').dialog('close');
+				jQuery('body').focus();
+	    }
+
+	    function resetTimoutPopupTimer() {
+				clearTimeout(timeoutPopupTimer); //should also clear the expiredTimeoutPopupTimer because if that has been triggered it will still show up
+				clearTimeout(expiredTimeoutPopupTimer); //added by Paul - original code did not clear he second timeout (it gets initialized when the first popup fires and if not cleared it still shows up after you click on Continue to prolong your session)
+				timeoutPopupTimer = setTimeout('showTimeoutPopup()', 300000);
+	    }
+
+	    function showTimeoutServerCommunicationError() {
+				alert("Server timeout!");
+	    }
+	    
+	    /*]]>*/</script>
+<script type="text/javascript" language="javascript">
+	    /*<![CDATA[*/
+	    
+
+	    jQuery.noConflict();
+	    jQuery(document).ready(function($) {
+		changeCancel();
+	    });
+
+            function changeCancel() {
+                var buttonHTML;
+                var newButtonHTML = '<span class="bodyText">'+
+                                        '<a href="javascript:void(0);" onclick="cancelConfirmationPopup();">'+
+                                            'Cancel'+
+                                        '</a>'+
+                                    '</span>';
+
+                
+                buttonHTML = jQuery('#cancelChange');
+                jQuery('SCRIPT',buttonHTML).remove();
+                jQuery('NOSCRIPT',buttonHTML).remove();
+                buttonHTML = jQuery('#cancelChange').html();
+
+                jQuery('#cancel').html(newButtonHTML);
+                jQuery('#cancelConfirmationButtonPlaceholder').html(buttonHTML);
+                jQuery('#cancelConfirmationButtonPlaceholder .styledButtonRight').html(jQuery('#newCancelButtonText').html());
+            }
+
+	    function cancelConfirmationPopup() {
+				jQuery('#cancelConfirmationPopup')
+					.dialog({
+					draggable:false,
+					resizable:false,
+					width: 500,
+					closeText:'',
+					title:'',
+					modal: true
+					})
+					.dialog('moveToTop');
+					jQuery('.ui-dialog-titlebar').hide();
+					jQuery('#cancelConfirmationPopup').dialog('moveToTop');
+			}
+
+
+	    function hideCancelConfirmationPopup() {
+				jQuery('#cancelConfirmationPopup').dialog('close');
+	    }
+
+
+	    
+	    /*]]>*/</script>
+				<!--[if IE 6]>
+			
+<script type="text/javascript" language="javascript">document.ie6pngFixBlankImageUrl = '/NASApp/NetAccessXX/olbweb/uk/en//common/blank1x1.gif';</script>
+<script type="text/javascript" language="JavaScript" src="/NASApp/NetAccessXX/olbweb/uk/en//common/iepngfix_tilebg.js">/**/</script>
+<script type="text/javascript" language="JavaScript" src="/NASApp/NetAccessXX/olbweb/uk/en//common/iepngfix.js">/**/</script>
+				<![endif]-->
+			
+<title>Cards overview - MBNA Online Card Services</title>
+</head>
+<body xmlns="">
+			<!--[if IE]>
+                <div id="browserIe">
+			<![endif]-->
+
+            <!--[if IE 6]>
+                <div id="browserIe6">
+			<![endif]-->
+
+            <!--[if IE 7]>
+                <div id="browserIe7">
+			<![endif]-->
+
+            <!--[if IE 8]>
+                <div id="browserIe8">
+			<![endif]-->
+        
+<a xmlns="http://www.w3.org/1999/xhtml" name="top">
+<!-- -->
+</a>
+<div class="auralText"> 
+					To protect your Online Card Services account, if your computer is inactive for more than 10 minutes your session will expire.
+			</div>
+<a xmlns="http://www.w3.org/1999/xhtml" href="#level1header" title="Jump to main header" class="auralText"> Jump to main content</a>
+<div id="brandingHeader">
+<!---->
+</div>
+<div id="wrapper" style="width:756px;">
+<div xmlns="http://www.w3.org/1999/xhtml" id="header" style="width:758px;">
+<div id="topMenu">
+<ul>
+<li style="width:11em;">
+<a target="_top" href="SecureMessageScreen?key=received" class="">
+<span style="float:right;display:block;cursor:pointer;">Messages</span>
+<span class="styledButtonMini" style="float:right;cursor:pointer;">
+<img src="/NASApp/NetAccessXX/olbweb/uk/en//common/mail-icon.gif" alt=""/>
+<span class="divClear" style="display:block;">
+<!-- -->
+</span>
+</span>
+</a>
+</li>
+<li>
+<img src="/NASApp/NetAccessXX/olbweb/uk/en//mbnaeire/images/global-menu-separator.gif" alt="" class="sep"/>
+</li>
+<li>
+<a href="InfoScreen?key=handslanding" id="helpSupportLinkID">Help &amp; support</a>
+</li>
+<li>
+<img src="/NASApp/NetAccessXX/olbweb/uk/en//mbnaeire/images/global-menu-separator.gif" alt="" class="sep"/>
+</li>
+<li>
+<a href="InfoScreen?key=contacts">Contact Us</a>
+</li>
+<li>
+<a target="_top" href="LogoutScreen" class="styledButton" style="float:right" id="logOffButton">Log Off<div class="divClear">
+<!-- -->
+</div>
+</a>
+<div class="divClear">
+<!-- -->
+</div>
+</li>
+</ul>
+<div class="divClear">
+<!-- -->
+</div>
+</div>
+<div id="brandingLogoContainer">
+<div style="width:139px;height:91px;float:left;overflow:hidden;">
+<a href="http//www.mbna.ie" target="_blank">
+<img border="0" title="MBNA" alt="MBNA" src="/NASApp/NetAccessXX/olbweb/uk/en/mbna/images/mbna_logo.png" style="position:absolute;width:139px;height:91px;"/>
+</a>
+<!---->
+</div>
+<div class="divClear">
+<!-- -->
+</div>
+</div>
+<div class="divClear">
+<!-- -->
+</div>
+<div id="cardButtons">
+<div class="divClear">
+<!-- -->
+</div>
+</div>
+<div class="divClear">
+<!-- -->
+</div>
+<div id="headerTextLine">
+<div id="loggedInPersonData">
+                                             
+                                        </div>
+<div id="cardData" class="cardDataNoData">
+                                             
+                                        </div>
+<div class="divClear">
+<!-- -->
+</div>
+</div>
+<div class="divClear">
+<!-- -->
+</div>
+<div id="mainNavigation">
+<div id="blankNavigation">
+<div id="mainNavigationLeftPlaceholder">
+                     
+            </div>
+<div id="mainNavigationRightPlaceholder">
+                     
+            </div>
+<div id="mainNavigationBlankCenter">
+                     
+            </div>
+</div>
+</div>
+<div class="divClear">
+<!---->
+</div>
+</div>
+<div xmlns="http://www.w3.org/1999/xhtml" id="content" class="contentWithBorder">
+<div id="contentData">
+<div class="makeItWide">
+<div style="margin-left:40px;margin-right:40px;">
+<a name="level1header">
+<!-- -->
+</a>
+<div class="functionName ">
+<h1>Cards overview</h1>
+<hr id="functionNameHr"/>
+<div class="divClear">
+<!---->
+</div>
+</div>
+<div id="functionMenuContainer">
+<span id="regAccFnctMenuBtnCntr">
+<a href="RegisterAccountScreen" class="styledButton">Add Card</a>
+<span class="txt">
+<img border="0" width="10" height="10" src="/NASApp/NetAccessXX/olbweb/uk/en/common/blank1x1.gif" alt=""/>
+</span>
+<a href="UnregisterAccountScreen" class="styledButton">Remove Card</a>
+</span>
+<!---->
+</div>
+<div class="divClear">
+<!---->
+</div>
+<div>
+<div>
+<div>
+<div>
+<div class="wideContent">
+<div style="height:20px;">
+<!---->
+</div>
+<p class="headline">Which credit card account would you like to see today?</p>
+<div style="width:100%;clear:both;margin-top:1em;">
+<table class="regAccTable bodyText" cellspacing="0" cellpadding="0" border="0" width="100%" summary="Cards overview">
+<thead>
+<tr class="regAccHeaderTable" height="20">
+<th scope="col" class="regAccHeaderTable">Account</th>
+<th scope="col" class="regAccHeaderTable" style="width:13%;">Outstanding Balance</th>
+<th scope="col" class="regAccHeaderTable" style="width:10%;">Credit Limit</th>
+<th scope="col" class="regAccHeaderTable" style="width:12%;">Payment Due</th>
+<th scope="col" class="regAccHeaderStatusTable" height="20" style="width:15%;">Account Status</th>
+<th scope="col" id="regAccHeaderOptions">
+<span class="auralText">Options</span>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr class="regAccountDetailsTable">
+<td class="regAccountDetailsNameTable">
+<div>
+<a href="AccountSnapshotScreen?acctID=YTNCZD">MBNA Gold Card, account number ending 123456</a>
+</div>
+</td>
+<td>&#8364;76.39CR</td>
+<td>&#8364;8,000.00</td>
+<td>
+<!---->
+</td>
+<td class="regAccountDetailsStatusTable">
+<div>Active <a href="InfoScreen?key=glossary#status">
+<img border="0" width="10" height="9" alt="Click here for a definition" src="/NASApp/NetAccessXX/olbweb/uk/en/common/intlinfo.gif"/>
+</a>
+</div>
+</td>
+<td class="regAccountDetailsOptionsTable">
+<!---->
+<!---->
+</td>
+<td class="regAcctOptions">
+<div id="regAcctOptionsPlaceholder_YTNCZD" class="regAccOptsPlaceholderHide">
+<!---->
+<div style="visibility:hidden;">
+<br/>
+<br/>
+</div>
+</div>
+<div id="regAcctOptions_YTNCZD" class="regAccOptsHide">
+<div class="innerSubTitle">I want to...</div>
+<span class="regAcctoptionsLink">
+<a href="MyPromotionsScreen?acctID=YTNCZD">View my promotions</a>
+</span>
+</div>
+</td>
+</tr>
+<tr class="regAccountDetailsTable">
+<td class="regAccountDetailsNameTable">
+<div>
+<a href="AccountSnapshotScreen?acctID=PMMQNI">MBNA Standard Card, account number ending 654321</a>
+</div>
+</td>
+<td>&#8364;1,511.44</td>
+<td>&#8364;9,100.00</td>
+<td>22 Mar 2011<!----></td>
+<td class="regAccountDetailsStatusTable">
+<div>Active <a href="InfoScreen?key=glossary#status">
+<img border="0" width="10" height="9" alt="Click here for a definition" src="/NASApp/NetAccessXX/olbweb/uk/en/common/intlinfo.gif"/>
+</a>
+</div>
+</td>
+<td class="regAccountDetailsOptionsTable">
+<!---->
+<a class="link" href="ActivationScreen?acctID=PMMQNI" target="">Activate your card</a>
+<!---->
+</td>
+<td class="regAcctOptions">
+<div id="regAcctOptionsPlaceholder_PMMQNI" class="regAccOptsPlaceholderHide">
+<!---->
+<div style="visibility:hidden;">
+<br/>
+<br/>
+<br/>
+</div>
+</div>
+<div id="regAcctOptions_PMMQNI" class="regAccOptsHide">
+<div class="innerSubTitle">I want to...</div>
+<span class="regAcctoptionsLink">
+<a href="MyPromotionsScreen?acctID=PMMQNI">View my promotions</a>
+</span>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="divClear">
+<!-- -->
+</div>
+</div>
+<div class="divClear">
+<!---->
+</div>
+</div>
+</div>
+</div>
+<div class="divClear">
+<!---->
+</div>
+</div>
+<div xmlns="http://www.w3.org/1999/xhtml" class="divClear">
+<!---->
+</div>
+<div xmlns="http://www.w3.org/1999/xhtml" id="contentContainerBottomBorder">
+<div id="contentContainerBottomBorderLeft">
+<!---->
+</div>
+<div id="contentContainerBottomBorderRight">
+<!---->
+</div>
+<div id="contentContainerBottomBorderCenter">
+<!---->
+</div>
+<div class="divClear">
+<!---->
+</div>
+</div>
+<div xmlns="http://www.w3.org/1999/xhtml" class="divClear">
+<!---->
+</div>
+<div xmlns="http://www.w3.org/1999/xhtml" class="divClear">
+<!-- -->
+</div>
+<div id="footer">
+<div id="footerLeft">
+<p>© 2011 MBNA Europe Bank Limited</p>
+</div>
+<div id="footerRight">
+<ul>
+<li>
+<a href="AccessibilityScreen?acctID=" class="footer">Accessibility</a>
+</li>
+<li>
+<img src="/NASApp/NetAccessXX/olbweb/uk/en//mbnaeire/images/footer-separator.gif" alt="" class="sep"/>
+</li>
+<li>
+<a href="InfoScreen?key=terms" class="footer">Terms of Use</a>
+</li>
+<li>
+<img src="/NASApp/NetAccessXX/olbweb/uk/en//mbnaeire/images/footer-separator.gif" alt="" class="sep"/>
+</li>
+<li>
+<a href="InfoScreen?key=privacy" class="footer">Privacy</a>
+</li>
+</ul>
+</div>
+<div class="divClear">
+<!-- -->
+</div>
+</div>
+</div>
+<div style="display:none;">
+<div id="timeoutPopup">
+<p class="headline">We noticed you haven't been actively using our web site for a few minutes.</p>
+<p>
+	    To protect your account, if our Online Card Services is inactive for more than 10 minutes your session will expire. If you need more time, just click "Yes, Continue" below.
+	</p>
+<div style="float:left;">
+<a href="LogoutScreen" target="" id="" class="buttonStyledLink right">
+<span class="styledButtonDynamicWidth">
+<span class="styledButtonRight">
+<span class="auralText">Logout<!----></span>No, LogOut<span class="auralText">
+<!---->
+</span>
+</span>
+</span>
+</a>
+</div>
+<div style="float:right;">
+<a href="#" target="" id="" class="buttonStyledLink right" onclick="getMoreTimeUntilNextTimeout();">
+<span class="styledButtonDynamicWidth">
+<span class="styledButtonRight">
+<span class="auralText">Get more time<!----></span>Yes, Continue<span class="auralText">
+<!---->
+</span>
+</span>
+</span>
+</a>
+</div>
+<div class="divClear">
+<!-- -->
+</div>
+</div>
+</div>
+<div style="display:none;">
+<div id="expiredTimeoutPopup">
+<p class="headline">We're sorry. Your session was inactive for more than 10 minutes.
+	    <br/>To protect your account information your session has ended.</p>
+<p>
+	    For security purposes, you'll need to login again.
+	</p>
+<div style="text-align:center;">
+<a href="LogoutScreen" target="" id="" class="buttonStyledLink right" onclick="hideExpiredTimeoutPopup();">
+<span class="styledButtonDynamicWidth">
+<span class="styledButtonRight">
+<span class="auralText">Confirm session expiration<!----></span>Ok<span class="auralText">
+<!---->
+</span>
+</span>
+</span>
+</a>
+</div>
+</div>
+</div>
+<div style="display:none;">
+<div id="cancelConfirmationPopup" style="text-align: left;">
+<div class="headline">Are you sure you want to cancel now?</div>
+<p>
+                        If you cancel the registration process now you'll lose
+                        the SiteKey information you've already entered, however
+                        you'll still be able to login to Online Card Services
+                        with the username and password you've created.
+                </p>
+<p>
+                        Please remember the next time you login you'll be
+                        required to complete the registration process.
+                </p>
+<div style="float:right;">
+<a href="javascript:hideCancelConfirmationPopup();" target="" id="" class="buttonStyledLink left">
+<span class="styledButtonDynamicWidth">
+<span class="styledButtonRight">
+<span class="auralText">
+<!---->
+</span>I want to continue<span class="auralText">
+<!---->
+</span>
+</span>
+</span>
+</a>
+</div>
+<div style="float:left;" id="cancelConfirmationButtonPlaceholder">
+<!---->
+</div>
+<div style="display: none" id="newCancelButtonText">I want to cancel</div>
+<div class="divClear">
+<!---->
+</div>
+</div>
+</div>
+			<!--[if IE]>
+                    </div>
+                </div>
+			<![endif]-->
+        
+<input type="hidden" name="analyticPageName" id="analyticPageName" value="RegisteredAccountsScreen"/>
+<input type="hidden" name="analyticBrand" id="analyticBrand" value="mbna"/>
+<input type="hidden" name="analyticAffinity" id="analyticAffinity" value="mbna"/>
+<SCRIPT language="JavaScript">var mbnaesPageID = ''; mbnaesPageID += 'RegisteredAccountsScreen';</SCRIPT>
+<script language="JavaScript" type="text/javascript" src="/NASApp/NetAccessXX/olbweb/uk/en/mbna/js/sasAnalytics/SpeedTrapInsert.js">
+<!---->
+</script>
+</body>
+</html>

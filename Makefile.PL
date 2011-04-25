@@ -2,12 +2,13 @@ use ExtUtils::MakeMaker;
 
 WriteMakefile(
               NAME	=> 'Finance::Bank::IE',
-              VERSION => '0.24',
+              VERSION => '0.25',
               AUTHOR  => 'Ronan Waide <waider@waider.ie>',
               PREREQ_PM   => {
-                              'WWW::Mechanize'	=> '0',
                               'Date::Parse' => '0',
-                              'HTML::TokeParser' => '0',
                               'HTML::Entities' => '0',
+                              'HTML::TokeParser' => '0',
+                              'Test::MockModule' => '0',
+                              'WWW::Mechanize'	=> '0',
                              },
              );

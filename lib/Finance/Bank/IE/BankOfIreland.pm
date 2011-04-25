@@ -44,6 +44,8 @@ use warnings;
 
 our $VERSION = "0.24";
 
+use base qw( Finance::Bank::IE );
+
 # headers for account summary page
 use constant {
     BALANCE  => "Balance Information: Balance",
@@ -76,7 +78,6 @@ use constant {
 
 my $BASEURL = "https://www1.365online.com/";
 
-use WWW::Mechanize;
 use HTML::TokeParser;
 use Carp;
 use Date::Parse;
@@ -84,10 +85,6 @@ use POSIX;
 use File::Path;
 use Data::Dumper;
 
-# package-local variable
-my $agent;
-my $lastop = 0;
-my %cached_config;
 
 =item login_dance( $config );
 
@@ -105,7 +102,7 @@ Logs in or refreshes the current session. The config parameter is a hash referen
 
 =back
 
-No validation is currently done on the format of the config items. The function returns true or false. Error reporting is currently via croak or carp. There are some extra config options controlling debug output. Note that this function should rarely need to be directly used as it's invoked by the other functions as a first step.
+No validation is currently done on the format of the config items. The function returns true or false. Note that this function should rarely need to be directly used as it's invoked by the other functions as a first step.
 
 =cut
 
@@ -113,124 +110,69 @@ sub login_dance {
     my $self = shift;
     my $confref = shift;
 
-    $confref ||= \%cached_config;
-
-    # try to create a debug directory if we need one
-    if ( $confref->{debugdir}) {
-        eval {
-            mkpath( [ $confref->{debugdir} ], 0, 0700 );
-        };
-        if ( $@ ) {
-            warn( "failed to create " . $confref->{debugdir} . ": $@" );
-            delete $confref->{debugdir};
-        }
-    }
-
-    my $croak = ( $confref->{croak} || 1 );
+    $confref ||= $self->cached_config();
 
     for my $required ( "user", "pin", "contact", "dob" ) {
         if ( !defined( $confref->{$required} )) {
-            if ( $croak ) {
-                croak( "$required not specified" )
-            } else {
-                carp( "$required not specified" );
-                return;
-            }
+            $self->_dprintf( "$required not specified\n" );
+            return;
         }
     }
 
-    for my $k ( keys %{$confref} ) {
-        $cached_config{$k} = $confref->{$k};
-    }
+    $self->cached_config( $confref );
 
-    if ( !defined( $agent )) {
-        $agent = WWW::Mechanize->new( env_proxy => 1,
-                                      autocheck => 1,
-                                      keep_alive => 10,
-                                    );
-        $agent->quiet( 0 );
-
-        # most of this is an attempt to work with BoI's updated
-        # website; eventually I gave up and fell back to using the
-        # legacy website they provided for Safari.
-        $agent->agent( 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.0.12) Gecko/20071126 Fedora/1.5.0.12-7.fc6 Firefox/1.5.0.12' );
-        my $jar = $agent->cookie_jar();
-        $jar->{hide_cookie2} = 1;
-        $agent->add_header( 'Accept' => 'text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5' );
-        $agent->add_header( 'Accept-Language' => 'en-US,en;q=0.5' );
-        $agent->add_header( 'Accept-Charset' => 'ISO-8859-1,utf-8;q=0.7,*;q=0.7' );
-        $agent->add_header( 'Accept-Encoding' => 'gzip,deflate' );
-    } else {
-        # simple check to see if the login is live
-        if ( time - $lastop < 60 ) {
-            $lastop = time;
+    my $res =
+      $self->_agent()->get( $BASEURL . 'servlet/Dispatcher/onlinebanking.htm' );
+    $self->_save_page();
+    if ( $res->is_success ) {
+        if ( $self->_agent()->content !~ /timeout.htm/si ) {
+            $self->_dprintf( "Short-circuit: session still valid\n" );
             return 1;
         }
-        my $res =
-          $agent->get( $BASEURL . 'servlet/Dispatcher/onlinebanking.htm' );
-        if ( $res->is_success ) {
-            $lastop = time;
-            print STDERR "Short-circuit: session still valid\n"
-              if $confref->{debug};
-            return 1;
-        }
-        print STDERR "Session has timed out, redoing login\n"
-          if $confref->{debug};
     }
+    $self->_dprintf( "Session has timed out, redoing login\n" );
 
     # fetch ye login pageibus
-    my $res = $agent->get( $BASEURL . 'servlet/Dispatcher/login.htm' );
-    $agent->save_content( $confref->{debugdir} . '/login.htm' )
-      if $confref->{debugdir};
+    $res = $self->_agent()->get( $BASEURL . 'servlet/Dispatcher/login.htm' );
+    $self->_save_page();
 
     if ( !$res->is_success ) {
-        croak( "Failed to get login page" );
-    } else {
+        croak( "Failed to get login page." );
     }
 
     # helpfully, BoI removed the form name, so we're going to rely on
     # it being the only form on the page for now.
-    $agent->field( "USER", $confref->{user} );
-    my $form = $agent->current_form();
+    $self->_agent()->field( "USER", $confref->{user} );
+    my $form = $self->_agent()->current_form();
     my $field = $form->find_input( "Pass_Val_1" );
     if ( !defined( $field )) {
         croak( "unrecognised secret type" );
     }
 
-    if ( $agent->content =~ /your date of birth/is ) {
-        $agent->field( "Pass_Val_1", $confref->{dob} );
+    if ( $self->_agent()->content =~ /your date of birth/is ) {
+        $self->_agent()->field( "Pass_Val_1", $confref->{dob} );
     } else {
-        $agent->field( "Pass_Val_1", $confref->{contact} );
+        $self->_agent()->field( "Pass_Val_1", $confref->{contact} );
     }
 
-    $res = $agent->submit_form( button => 'submit', 'x' => 139, 'y' => 16 );
-
-    $agent->save_content( $confref->{debugdir} . '/login_submit.htm' )
-      if $confref->{debugdir};
+    $res = $self->_agent()->submit_form( button => 'submit', 'x' => 139, 'y' => 16 );
+    $self->_save_page();
 
     if ( !$res->is_success ) {
         croak( "Failed to submit login form" );
     } else {
-        print STDERR $res->request->as_string if $confref->{debug};
+        $self->_dprintf( $res->request->as_string );
     }
 
-    _set_pin_fields( $agent, $confref );
-    $res = $agent->submit_form();
+    $self->_set_pin_fields( $confref );
+    $res = $self->_agent()->submit_form();
+    $self->_save_page();
 
     if ( !$res->is_success ) {
         croak( "Failed to submit login form" );
     }
 
     my $page = $res->content;
-
-    if ( $page !~ /Ha_Det/ ) {
-        if ( $page =~ /authentication details are incorrect/si ) {
-            croak( "Your login details are incorrect!" );
-        }
-        $agent->save_content( $confref->{debugdir} . "/login-failed.html" )
-          if $confref->{debug};
-        croak( "Login failed: we didn't get the Ha_Det page" );
-    }
 
     # We need to check for the phishing page, because otherwise we're
     # not going to get any further info. Let's follow the Ha_Det link
@@ -239,45 +181,47 @@ sub login_dance {
     # There's also a T&C page which I'm not going to cater for
     # specifically because it's a T&C page. You want it, you read it.
     my ( $loc ) = $page =~ /Ha_Det.*location.href="\/?(.*?)"/s;
-    $agent->save_content( $confref->{debugdir} . '/pin_submit.htm' )
-      if $confref->{debugdir};
-    print STDERR "being redirected to $loc...\n" if defined( $loc ) and
-      $confref->{debug};
-    $res = $agent->get( $loc =~ /^http/ ? $loc : $BASEURL . $loc );
-    if ( !$res->is_success ) {
-        croak( "Failed to get Ha_Det page: $loc" );
+    if ( $loc ) {
+        $self->_dprintf( "being redirected to $loc...\n" );
+        $res = $self->_agent()->get( $loc =~ /^http/ ? $loc : $BASEURL . $loc );
+        $self->_save_page();
+        if ( !$res->is_success ) {
+            croak( "Failed to get Ha_Det page: $loc" );
+        }
+    } else {
+        if ( $page =~ /details are incorrect/si ) {
+            croak( "Your login details are incorrect!" );
+        }
+        croak( "Login failed: we didn't get the Ha_Det page" );
     }
 
     # Now check if it pulls in the phishing page.
-    print STDERR "phishing page check: " if $confref->{debug};
-    if ( $agent->find_link( url_regex => qr/phishing_notification.html/ )) {
-        print STDERR "found\n" if $confref->{debug};
+    $self->_dprintf( "phishing page check: " );
+    if ( $self->_agent()->find_link( url_regex => qr/phishing_notification/ )) {
+        $self->_dprintf( "found\n" );
         $res =
-          $agent->follow_link( url_regex => qr/phishing_notification.html/ );
-        $agent->save_content( $confref->{debugdir} . '/phishing.htm' )
-          if $confref->{debugdir};
+          $self->_agent()->follow_link( url_regex => qr/phishing_notification/ );
+        $self->_save_page();
 
         if ( !$res->is_success ) {
             croak( "Failed to get phishing page" );
         }
         # The page has a single form on it which we must submit
-        $res = $agent->submit_form();
+        $res = $self->_agent()->submit_form();
         if ( !$res->is_success ) {
+            $self->_save_page();
             croak( "Failed to submit phishing page" );
         }
     } else {
-        print STDERR "none\n" if $confref->{debug};
+        $self->_dprintf( "none\n" );
     }
 
-    $agent->save_content( $confref->{debugdir} . '/post_login.htm' )
-      if $confref->{debugdir};
-
-    $lastop = time;
+    $self->_save_page();
 
     return 1;
 }
 
-=item check_balance()
+=item $self->check_balance()
 
 Fetch all account balances from the account summary page. Returns an array of Finance::Bank::IE::BankOfIreland::Account objects.
 
@@ -287,23 +231,21 @@ sub check_balance {
     my $self = shift;
     my $confref = shift;
 
-    $confref ||= \%cached_config;
-    $self->login_dance( $confref ) or return;
+    $confref ||= $self->cached_config();
+    $self->login_dance( $confref );
 
     # Banking frameset:
     # main frame - onlinebanking.html
     #     - subframes marbar3_pb.htm, bank.htm
     #     - bank.htm subframes navbar.htm?status=0 / accsum.htm
-    print STDERR "Getting balance page\n" if $confref->{debug};
+    $self->_dprintf( "Getting balance page\n" );
     my $res =
-      $agent->get( $BASEURL . 'servlet/Dispatcher/accsum.htm' );
+      $self->_agent()->get( $BASEURL . 'servlet/Dispatcher/accsum.htm' );
+    $self->_save_page();
 
     if ( !$res->is_success ) {
         croak( "Failed to get account summary page" );
     }
-
-    $agent->save_content( $confref->{debugdir} . '/accsum.htm' )
-      if $confref->{debugdir};
 
     my $summary = $res->content;
     my $parser = new HTML::TokeParser( \$summary );
@@ -355,62 +297,62 @@ sub check_balance {
     }
 
     if ( !@accounts ) {
-        print STDERR "No accounts found\n" if $confref->{debug};
-        $agent->save_content( $confref->{debugdir} . '/noaccounts.html' )
-          if $confref->{debugdir};
+        $self->_dprintf( "No accounts found\n" );
     }
 
     return @accounts;
 }
 
+=item *$self->account_details( account [,config] )
+
+ Return transaction details from the specified account
+
+=cut
 sub account_details {
     my $self = shift;
     my $account = shift;
     my $confref = shift;
 
-    $confref ||= \%cached_config;
-    login_dance( $confref ) or return;
+    $confref ||= $self->cached_config();
+    $self->login_dance( $confref );
 
     # Banking frameset:
     # main frame - onlinebanking.html
     #     - subframes marbar3_pb.htm, bank.htm
     #     - bank.htm subframes navbar.htm?status=0 / accsum.htm
     my $res =
-      $agent->get( $BASEURL . 'servlet/Dispatcher/accsum.htm' );
-
-    $agent->save_content( $confref->{debugdir} . '/accsum.htm' )
-      if $confref->{debugdir};
+      $self->_agent()->get( $BASEURL . 'servlet/Dispatcher/accsum.htm' );
+    $self->_save_page();
 
     if ( !$res->is_success ) {
         croak( "Failed to get account summary page" );
     }
 
-    if ( my $l = $agent->find_link( text => $account )) {
-        $agent->follow_link( text => $account )
+    if ( my $l = $self->_agent()->find_link( text => $account )) {
+        $self->_agent()->follow_link( text => $account )
           or croak( "Couldn't follow link to account number $account" );
+        $self->_save_page();
     } else {
         croak "Couldn't find a link for $account";
     }
 
     # the returned file is a frameset
-    my $detail = $agent->content;
+    my $detail = $self->_agent()->content;
 
     if ( $detail =~ /txlist.htm/s ) {
-        $agent->follow_link( url_regex => qr/txlist.htm/ ) or
+        $self->_agent()->follow_link( url_regex => qr/txlist.htm/ ) or
           croak( "couldn't follow link to transactions" );
+        $self->_save_page();
     } else {
         croak( "frameset not found" );
     }
-
-    $agent->save_content( $confref->{debugdir} . '/txlist1.htm' )
-      if $confref->{debugdir};
 
     # now fetch as many pages as it's willing to give us
     my @activity;
     my @header;
     my $page = 1;
     while ( 1 ) {
-        $detail = $agent->content;
+        $detail = $self->_agent()->content;
 
         my ( $hdr, $act ) = $self->_parse_details( \$detail );
         if ( !$act or !$hdr or !@{$act} or !@{$hdr}) {
@@ -423,11 +365,9 @@ sub account_details {
         }
 
         if ( $detail =~ /cont_but_next/i ) {
-            $agent->follow_link( url_regex => qr/txlist.htm/ )
+            $self->_agent()->follow_link( url_regex => qr/txlist.htm/ )
               or croak( "next link failed" );
-            $page++;
-            $agent->save_content( $confref->{debugdir} . "/txlist$page.htm" )
-              if $confref->{debugdir};
+            $self->_save_page();
         } else {
             unshift @activity, \@header;
             last;
@@ -437,9 +377,11 @@ sub account_details {
     return @activity;
 }
 
-#
-# Parse the transaction listing page into an array ref
-#
+=item * $self->_parse_details( $content );
+
+ Parse the transaction listing page (C<content>) into an array ref
+
+=cut
 sub _parse_details {
     my $self = shift;
     my $content = shift;
@@ -513,52 +455,53 @@ sub _parse_details {
     return \@headings, \@lines;
 }
 
+=item * $self->list_beneficiaries( account )
+
+ List beneficiaries of C<account>
+
+=cut
 sub list_beneficiaries {
     my $self = shift;
     my $account_from = shift;
     my $confref = shift;
 
-    $confref ||= \%cached_config;
-    login_dance( $confref ) or return;
+    $confref ||= $self->cached_config();
+    $self->login_dance( $confref );
 
     # allow passing in of account objects
-    if ( ref $account_from eq "Finance::Bank::IE::BankOfIreland::Account"
-         and defined( $account_from->{nick} )) {
+    if ( ref $account_from eq "Finance::Bank::IE::BankOfIreland::Account" ) {
         $account_from = $account_from->{nick};
     }
 
     my $res =
-      $agent->get( $BASEURL . 'servlet/Dispatcher/accsum.htm' );
+      $self->_agent()->get( $BASEURL . 'servlet/Dispatcher/accsum.htm' );
+    $self->_save_page();
     if ( !$res->is_success ) {
         croak( "Failed to get account summary page" );
     }
 
-    $agent->save_content( $confref->{debugdir} . "/accsum.htm" )
-      if $confref->{debugdir};
-
-    $agent->follow_link( text => $account_from )
+    $self->_agent()->follow_link( text => $account_from )
       or croak( "Couldn't follow link to account $account_from" );
+    $self->_save_page();
 
-    $agent->save_content( $confref->{debugdir} . "/$account_from.htm" )
-      if $confref->{debugdir};
-
-    $agent->follow_link( url_regex => qr/^navbar.htm/ )
+    $self->_agent()->follow_link( url_regex => qr/^navbar.htm/ )
       or croak( "Couldn't load navbar" );
+    $self->_save_page();
 
-    $agent->save_content( $confref->{debugdir} . "/$account_from.navbar.htm" )
-      if $confref->{debugdir};
-
-    $agent->follow_link( text => "Money Transfer" )
+    $self->_agent()->follow_link( text => "Money Transfer" )
       or croak( "Couldn't load money transfer" );
+    $self->_save_page();
 
-    $agent->save_content( $confref->{debugdir} .
-                          "/$account_from.moneytransfer.htm" )
-      if $confref->{debugdir};
-
-    my $beneficiaries = $self->_parse_beneficiaries( $agent->content );
+    my $beneficiaries = $self->_parse_beneficiaries( $self->_agent()->content );
 
     $beneficiaries;
 }
+
+=item * $self->funds_transfer( from, to, amount [,config] )
+
+ Transfer C<amount> from C<from> to C<to>, optionally using C<config> as the config data.
+
+=cut
 
 sub funds_transfer {
     my $self = shift;
@@ -567,17 +510,15 @@ sub funds_transfer {
     my $amount = shift;
     my $confref = shift;
 
-    $confref ||= \%cached_config;
-    login_dance( $confref ) or return;
+    $confref ||= $self->cached_config();
+    $self->login_dance( $confref );
 
     # allow passing in of account objects
-    if ( ref $account_from eq "Finance::Bank::IE::BankOfIreland::Account"
-         and defined( $account_from->{nick} )) {
+    if ( ref $account_from eq "Finance::Bank::IE::BankOfIreland::Account" ) {
         $account_from = $account_from->{nick};
     }
 
-    if ( ref $account_to eq "Finance::Bank::IE::BankOfIreland::Account" and
-         defined( $account_to->{nick} )) {
+    if ( ref $account_to eq "Finance::Bank::IE::BankOfIreland::Account" ) {
         $account_to = $account_to->{nick};
     }
 
@@ -601,37 +542,28 @@ sub funds_transfer {
         croak( "Inactive beneficiary" );
     }
 
-    $agent->submit_form(
+    $self->_agent()->submit_form(
                         fields => {
                                    rd_pay_cancel => $acct->{input},
                                    txt_pay_amount => $amount,
                                   },
                        ) or croak( "Form submit failed" );
+    $self->_save_page();
 
-    $agent->save_content( $confref->{debugdir} .
-                          "/$account_from.moneytransfer." . $acct->{nick}
-                          . ".htm" ) if $confref->{debugdir};
-
-    _set_pin_fields( $agent, $confref );
-    $agent->submit_form() or
+    $self->_set_pin_fields( $confref );
+    $self->_agent()->submit_form() or
       croak( "Payment confirm failed" );
+    $self->_save_page();
 
-    if ( $agent->content !~ /your request.*is confirmed/si ) {
+    if ( $self->_agent()->content !~ /your request.*is confirmed/si ) {
         croak( "Payment failed" );
-        $agent->save_content( $confref->{debugdir} .
-                              "/$account_from.moneytransfer_failed.htm" )
-          if $confref->{debugdir};
     }
 
-    $agent->save_content( $confref->{debugdir} .
-                          "/$account_from.moneytransfer_confirmed.htm" )
-      if $confref->{debugdir};
-
     # return the 'receipt'
-    return $agent->content;
+    return $self->_agent()->content;
 }
 
-=item activate_beneficiary( $acct, $bene, $code )
+=item * $self->activate_beneficiary( $acct, $bene, $code )
 
 Activate the specified beneficiary using the provided activation code.
 
@@ -640,17 +572,15 @@ Activate the specified beneficiary using the provided activation code.
 sub activate_beneficiary {
     my ( $self, $account_from, $account_to, $code, $confref ) = @_;
 
-    $confref ||= \%cached_config;
+    $confref ||= $self->cached_config();
 
     # allow passing in of account objects
-    if ( ref $account_from eq "Finance::Bank::IE::BankOfIreland::Account"
-         and defined( $account_from->{nick} )) {
+    if ( ref $account_from eq "Finance::Bank::IE::BankOfIreland::Account" ) {
         $account_from = $account_from->{nick};
     }
 
     # deref account_to as well
-    if ( ref $account_to eq "Finance::Bank::IE::BankOfIreland::Account" and
-         defined( $account_to->{nick} )) {
+    if ( ref $account_to eq "Finance::Bank::IE::BankOfIreland::Account" ) {
         $account_to = $account_to->{nick};
     }
 
@@ -675,43 +605,40 @@ sub activate_beneficiary {
     }
 
     # need to select the beneficiary, then click "Activate Beneficiary"
-    $agent->submit_form(
+    # this produces a warning due to an unnamed button, so we'll fix that
+    my $form = $self->_agent()->current_form();
+    for my $input ( $form->inputs()) {
+        if ( !defined( $input->{name} )) {
+            $input->{name} = 'noname';
+        }
+    }
+    $self->_agent()->submit_form(
                         fields => {
                                    rd_pay_cancel => $acct->{input},
                                   },
                         button => 'activatebenf',
                        );
+    $self->_save_page();
 
-    # WTF?
-    $confref->{debugdir} = "/Users/waider/src/perl/Banking/data";
-
-    $agent->save_content( $confref->{debugdir} .
-                          "/$account_from.activate." . $acct->{nick}
-                          . ".htm" ) if $confref->{debugdir};
-
-    $agent->submit_form(
+    $self->_agent()->submit_form(
                         fields => {
                                    txtActivationCode => $code,
                                   }
                        );
+    $self->_save_page();
 
-    if ( $agent->content !~ /you have successfully activted the following beneficary/si ) {
-        $agent->save_content( $confref->{debugdir} .
-                              "/$account_from.activate_succeeded." . $acct->{nick}
-                              . ".htm" ) if $confref->{debugdir};
+    if ( $self->_agent()->content !~ /you have successfully activated the following beneficary/si ) {
         return 1;
     }
 
-    $agent->save_content( $confref->{debugdir} .
-                          "/$account_from.activate_failed." . $acct->{nick}
-                          . ".htm" ) if $confref->{debugdir};
     return 0;
 }
 
-#
-# Parse the beneficiaries page.
-# Returns a bunch of accounts.
-#
+=item * $self->parse_beneficiaries( content ) 
+
+  Parse the beneficiaries page (C<content>). Returns a bunch of accounts.
+
+=cut
 sub _parse_beneficiaries {
     my $self = shift;
     my $content = shift;
@@ -813,15 +740,20 @@ sub _parse_beneficiaries {
     \@benes;
 }
 
+=item * $self->_set_pin_fields( $config )
+
+  Parse the last received page for PIN entry fields, and populate them with the PIN digits from C<$config>.
+
+=cut
 sub _set_pin_fields {
-    my $agent = shift;
+    my $self = shift;
     my $confref = shift;
 
-    my $page = $agent->content;
+    my $page = $self->_agent()->content;
 
     if ( $page !~ /PIN_Val_1/s ) {
         if ( $page =~ /Session Timeout/ ) {
-            print STDERR "Apparently your session timed out\n";
+            $self->_dprintf( "Apparently your session timed out\n" );
         }
         croak( "PIN entry failed: we didn't get the PIN page" );
     }
@@ -838,7 +770,7 @@ sub _set_pin_fields {
         croak( "can't figure out what PIN digits are required" );
     }
 
-    my $form = $agent->current_form();
+    my $form = $self->_agent()->current_form();
     for my $pd ( 1..3 ) {
         my $idx = $pin[$pd - 1];
         my $field = $form->find_input( "PIN_Val_" . $pd );
@@ -846,9 +778,22 @@ sub _set_pin_fields {
             croak( "failed to find PIN_Val_$pd" );
         }
         $field->readonly( 0 );
-        $agent->field( "PIN_Val_" . $pd,
-                       substr( $confref->{pin}, $idx -1 , 1 ));
+        $self->_agent()->field( "PIN_Val_" . $pd,
+                                substr( $confref->{pin}, $idx - 1 , 1 ));
     }
+}
+
+=item * $scrubbed = $self->_scrub_page( $content )
+
+ Scrub the supplied content for PII.
+
+=cut
+sub _scrub_page {
+    my ( $self, $content ) = @_;
+
+    # fairly generic - really need to have something better here!
+    $content =~ s/####[0-9]{4}/####9999/g;
+    return $content;
 }
 
 =back

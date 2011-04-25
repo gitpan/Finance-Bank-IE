@@ -57,6 +57,40 @@ sub getconfig {
     return;
 }
 
+sub getfile {
+    my $file = shift;
+    my $context = shift;
+    my $content;
+
+    $file =~ s@/$@/index.html@;
+
+    # figure out which bank test is calling us and use that to find the files
+    if ( !$context ) {
+        ( $context ) = (caller)[1];
+        $context =~ s@t/(.*)\.t$@$1@;
+        $context =~ s@\.pm$@@;
+    }
+
+    $file =~ s@^\w+?://[^/]+@@;
+    $file =~ s@^(.*/)*@data/$context/@;
+
+    while ( 1 ) {
+        print STDERR "#  looking for $file\n" if $ENV{DEBUG};
+        if ( open( my $CONTENT, '<', $file )) {
+            local $/ = undef;
+            $content = <$CONTENT>;
+            return $content;
+        } else {
+            if ( $file =~ s/\?.*$// ) {
+                next;
+            }
+        }
+
+        last;
+    }
+
+}
+
 =back
 
 =cut

@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>Your Transactions</title>
+		<script type="text/javascript" src="/script/js_funcs01_common.js"></script>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+		<meta http-equiv="pragma" content="no-cache" />
+		<meta http-equiv="Cache-Control" content="no-cache" />
+		<meta http-equiv="Expires" content="Wed, 30 Jan 1980 09:00:00 GMT" />
+		<link rel="stylesheet" type="text/css" href="/css/content.css" />
+	</head>
+	<body onload="hidethem(0,1)">
+<div class="page">
+	<h1>Your Transactions</h1>
+	<hr />
+	<div class="text">
+		Transactions on  Savings Account, ACCOUNTNICK 
+(EUR)
+ since 05&nbsp;NOV&nbsp;2009.
+	</div>
+	<br />
+			<div class="account_tables">
+				<table summary="Tranactions on your choosen account">
+					<tr>
+						<th class="left_corner"><img src="/images/t.gif" width="12" height="17" alt="" /></th>
+						<th><b>Date</b></th>
+						<th class="details"><b>Details</b></th>
+						<th class="currency"><b>Debit</b></th>
+						<th class="currency"><b>Credit</b></th>
+						<th class="currency"><b>Balance</b> <a href="#information_01" onclick="hidethem(1,1)" onkeypress="hidethem(1,1)"><img src="/images/051102_cont_info_smal01.gif" alt="Information: Balance"  width="15" height="15" /></a></th>
+						<th class="right_corner"><img src="/images/t.gif" width="5" height="17" alt="" /></th>
+					</tr>
+<tr>
+<td class=""></td>
+<td class="">06&nbsp;NOV&nbsp;2009</td>
+<td class="">365 Online  DOE JOHN</td>
+<td class="currency_red">3000.00</td>
+<td class="currency"><br></td>
+<td class="currency">22442.92</td>
+<td class=""></td>
+</tr>
+<tr>
+<td class="grey"></td>
+<td class="grey"></td>
+<td class="grey">VODAFONE-A/C       DD</td>
+<td class="currency_grey_red_right_aligned">33.94</td>
+<td class="currency_grey"><br></td>
+<td class="grey"></td>
+<td class="grey"></td>
+</tr>
+<tr>
+<td class="pin">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+<td class="pin"> </td>
+<td class="pin">                     </td>
+</tr>
+<tr>
+<td class="pin">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+<td class="pin"> </td>
+<td class="pin">                     </td>
+</tr>
+<tr>
+<td class="pin">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+<td class="pin"> </td>
+<td class="pin">                     </td>
+</tr>
+<tr>
+<td class="pin">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+<td class="pin"> </td>
+<td class="pin">                     </td>
+</tr>
+<tr>
+<td class="pin">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+<td class="pin"> </td>
+<td class="pin">                     </td>
+</tr>
+<tr>
+<td class="pin">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+<td class="pin"> </td>
+<td class="pin">                     </td>
+</tr>
+	</table>
+</div>
+<br /><br />
+			<div class="information">
+				<div class="info_header">
+					<div class="info_header_left">
+						<img src="/images/t.gif" width="4" height="23"  alt="" />
+ 				</div>
+					<div class="info_header_mid">
+						<img src="/images/051102_cont_info_smal01.gif"  alt="Information" width="15" height="15" /> <b>Information</b>
+ 				</div>
+					<div class="info_header_right">
+						<img src="/images/t.gif" width="4" height="23" alt="" />
+ 				</div>
+ 				</div>
+ 				<div id="newname000">
+ 					<div class="inf_bg01">
+ 						<div class="inf_bg02">
+ 							<div class="inf_text">
+								<b>Your Transactions</b><br />
+								Depending on timing, some of these transactions/balances may differ from the last postal statement. In addition, some outstanding transactions may not appear until they are fully processed. <br />
+								Transactions are displayed eight at a time. If you wish to see transactions previous to the above please use the "next" button.<br />
+							    </div>
+							<div class="info_footer">
+								<div class="info_footer_left">
+									<img src="/images/t.gif" width="4" height="4" alt="" />
+								</div>
+								<div class="info_footer_right">
+									<img src="/images/t.gif" width="4" height="4" alt="" />
+								</div>
+							</div>
+						</div>
+ 					</div>
+ 				</div >
+ 				<div  id="newname001" class="invisible">
+ 					<div class="inf_bg01">
+ 						<div class="inf_bg02">
+ 							<div class="inf_text">
+								<a name="information_01"></a>
+								<b>Your Account Balance</b><br />
+								Your Account Balance is the most up to date balance available. It is the balance at banking close of business on the previous banking day adjusted by any transactions, which have been presented up to this time. This balance is updated during the day as transactions are presented and the status of these items will not be confirmed until the next banking close of business. This balance is subject to the clearance of any uncleared cheques lodged recently.
+							    </div>
+							<div class="info_footer">
+								<div class="info_footer_left">
+									<img src="/images/t.gif" width="4" height="4" alt="" />
+								</div>
+								<div class="info_footer_right">
+									<img src="/images/t.gif" width="4" height="4" alt="" />
+								</div>
+							</div>
+						</div>
+ 					</div>
+ 				</div >
+ 			</div>
+ 		</div>
+	</body>
+</html>

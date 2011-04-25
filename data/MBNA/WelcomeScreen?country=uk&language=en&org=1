@@ -1,0 +1,1130 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xml:lang="en" lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>MBNA Online Card Services</title>
+<link rel="stylesheet" href="/NASApp/NetAccessXX/olbweb/uk/en/common/dynamicCommon.css" type="text/css"/>
+<link rel="stylesheet" href="/NASApp/NetAccessXX/olbweb/uk/en/mbna/mbna.css" type="text/css"/>
+<script language="JavaScript" type="text/javascript">
+			/*<![CDATA[*/
+			if (typeof(lpCurrentBrand) == 'undefined') {
+						
+				var lpCurrentBrand = 'mbna';
+			
+				if (typeof(lpCurrentBrand) == '') {
+					var lpCurrentBrand = 'mbna';
+				}
+				
+				//This variable is picked up by the LivePerson JavaScript
+				if (typeof(lpUnit) == 'undefined') {	
+					var lpUnit = lpCurrentBrand + '-service';		
+				}
+
+			}
+			/*]]>*/
+			</script>
+<script src="/NASApp/NetAccessXX/olbweb/uk/en//mbna/js/liveperson/mtagconfig.js" type="text/Javascript">
+<!---->
+</script>
+<script language="JavaScript" type="text/javascript">
+		    /*<![CDATA[*/
+			//Make sure that the javascript below is only ran once
+			if (typeof(initialiseMonitorFlag)=='undefined') {
+			
+				var initialiseMonitorFlag = true;
+			
+				lpAddVars('session','SessionBrand','');
+				lpAddVars('page','Section','welcomeLoginScreen;');
+				lpAddVars('page','Product','');
+				lpAddVars('page','CurrentBrand','mbna');
+				
+				
+			}
+		    /*]]>*/
+		    </script>
+<meta name="keywords" content="MBNA OLB Customers"/>
+<meta name="description" content="Welcome MBNA Customer"/>
+<script language="javascript" type="text/javascript" src="/NASApp/NetAccessXX/olbweb/uk/en/mbna/js/siteKey.js">
+<!---->
+</script>
+<script language="JavaScript" type="text/javascript">
+
+	var ipAddress = '89.101.61.231';
+	var flashSwf = '/NASApp/NetAccessXX/olbweb/uk/en/mbna/js/sitekey/rsa_fso.swf';
+</script>
+<script language="JavaScript" type="text/javascript">/*<![CDATA[*/
+
+	
+	function getFlashMovieObject(movieName)
+	{
+	  
+	   if ( window.document[movieName] )
+	   {
+	       return window.document[movieName];
+	   }
+	   if ( navigator.appName.indexOf("Microsoft Internet") == -1 )
+	   {
+	     if ( document.embeds && document.embeds[movieName] )
+	       return document.embeds[movieName];
+	   }
+	   else
+	   {
+	     return document.getElementById( movieName );
+	   }
+	}
+
+
+	var flashinstalled = 0;
+	var flashversion = 0; 
+	MSDetect = "false";
+
+
+	if( navigator.plugins && navigator.plugins.length )
+	{
+		x = navigator.plugins["Shockwave Flash"];
+
+		
+		if(x)
+		{
+			flashinstalled = 2;
+			if( x.description )
+			{
+				y = x.description;
+				flashversion = y.charAt( y.indexOf('.') - 1 );				
+			}
+		}
+		else
+		{
+			flashinstalled = 1;
+		}
+
+		if( navigator.plugins["Shockwave Flash 2.0"] )
+		{
+			flashinstalled = 2;
+			flashversion = 2;
+		}
+	}
+	else if( navigator.mimeTypes && navigator.mimeTypes.length )
+	{
+
+		x = navigator.mimeTypes['application/x-shockwave-flash'];
+
+		if( x && x.enabledPlugin )
+		{
+			flashinstalled = 2;
+		}
+		else
+		{
+			flashinstalled = 1;
+		}
+	}
+	else
+	{
+	    
+		MSDetect = "true";
+	}
+
+/*]]>*/</script>
+<script language="VBScript" type="text/vbscript">
+<!--<![CDATA[
+
+	on error resume next
+	If MSDetect = "true" Then
+		For i = 2 to 10
+			If Not( IsObject( CreateObject( "ShockwaveFlash.ShockwaveFlash." & i ) ) ) Then
+
+			Else
+				flashinstalled = 2
+				flashversion = i
+			End If
+		Next
+	End If
+
+	If flashinstalled = 0 Then
+		flashinstalled = 1
+	End If
+
+]]>--></script>
+<script language="JavaScript" type="text/javascript">/*<![CDATA[*/
+
+	
+if ( flashinstalled == 2)
+	
+	{		
+		var out = "";
+		out = out + "<object classid='clsid:D27CDB6E-AE6D-11cf-96B8-444553540000'" + "\n";
+		out = out + "id='flash_id' width='1' height='1' style='display:none;'>" + "\n";
+		out = out + "<param name='movie' value='"+flashSwf+"'>" + "\n";
+		out = out + "<param name='quality' value='high'>" + "\n";
+		out = out + "<param name='bgcolor' value='#FFFFFF'>" + "\n";
+		out = out + "<param name='FlashVars' value='rsa_flash_id=flash_id&field_name=SiteKeyDeviceFSO&ip_address="+ipAddress+"'>" + "\n";
+		out = out + "<embed name='flash_id' allowNetworking='none' swliveconnect='true' src='"+flashSwf+"'" + "\n";
+		out = out + "FlashVars='rsa_flash_id=flash_id&field_name=SiteKeyDeviceFSO&ip_address="+ipAddress+"'" + "\n";
+		out = out + "quality='high' bgcolor='#FFFFFF' width='1' height='1'" + "\n";
+		out = out + "type='application/x-shockwave-flash'>" + "\n";
+		out = out + "<noobject></noobject>" + "\n";
+		out = out + "</embed>" + "\n";
+		out = out + "<noobject></noobject>" + "\n";
+		out = out + "</object>" + "\n";
+		
+		document.write(out);
+	}
+
+
+	var SEP = '|';
+	var PAIR = '=';
+	var DEV = '~';
+	var ver = 1;
+
+	ua = navigator.userAgent.toLowerCase();
+	opera = ua.indexOf("opera") >= 0;
+	ie = ua.indexOf("msie") >= 0 && !opera;
+	iemac = ie && ua.indexOf("mac") >= 0;
+	moz = ua.indexOf("mozilla") && !ie && !opera;
+	os = navigator.platform;
+
+	function goto(url) {
+			window.location.replace(url);
+	}
+
+	function activeXDetect(componentClassID)
+	{
+	   componentVersion = document.body.getComponentVersion('{'+componentClassID+'}','ComponentID');
+	   return (componentVersion != null) ? componentVersion : false;
+	}
+
+	function extractVersions(s)
+	{
+		extractedVersions = "";	 
+		for (var i = 0; i < s.length; i++) {
+			charAtValue = s.charAt(i);
+			if ((charAtValue >= '0' && charAtValue <= '9') || charAtValue == '.' || charAtValue == '_' || charAtValue == ',')
+				extractedVersions += charAtValue;
+		}
+		return extractedVersions;
+    }
+
+	function stripIllegalChars(value)
+	{
+		t = "";	
+		value = value.toLowerCase();
+		for (i = 0; i < value.length; i++) {
+			if (value.charAt(i) != '\n' && value.charAt(i) != '/' && value.charAt(i) != "\\")
+			{
+				t += value.charAt(i);
+			}
+			else if (value.charAt(i) == '\n')
+			{
+				t += "n";
+			}
+		}
+		return t;
+	}
+
+	function stripFullPath(tempFileName, lastDir)
+	{
+		fileName = tempFileName;		
+		filenameStart = 0;
+		filenameStart = fileName.lastIndexOf(lastDir);
+		if (filenameStart < 0)
+			return tempFileName;
+		filenameFinish = fileName.length;
+		fileName = fileName.substring(filenameStart + lastDir.length, filenameFinish);
+		return fileName;
+	}
+	
+	function deviceprint_browser ()
+	{
+		t = ua +SEP+ navigator.appVersion +SEP+ navigator.platform;
+		if (ie)
+		{
+			t += SEP + navigator.appMinorVersion +SEP+ navigator.cpuClass +SEP+ navigator.browserLanguage;
+			t += SEP + ScriptEngineBuildVersion();
+		}
+		else if (moz)
+		{
+			t += SEP + navigator.language;
+		}
+		return t;
+	}
+
+	function deviceprint_display ()
+	{
+		t = "";
+		if (self.screen)
+		{
+			t += screen.colorDepth +SEP+ screen.width +SEP+ screen.height +SEP+ screen.availHeight;
+		}
+		return t;
+	}
+
+	function deviceprint_software ()
+	{
+		t = "";
+		isFirst = true;
+
+		var ht = new Hashtable();
+		ht.put('npnul32.dll','def'); 	 	
+		ht.put('npqtplugin6.dll','qt6'); 	
+		ht.put('npqtplugin5.dll','qt5'); 	
+		ht.put('npqtplugin4.dll','qt4'); 
+		ht.put('npqtplugin3.dll','qt3'); 
+		ht.put('npqtplugin2.dll','qt2'); 
+		ht.put('npqtplugin.dll','qt1');  	
+		ht.put('nppdf32.dll','pdf'); 	 
+		ht.put('NPSWF32.dll','swf'); 	 
+		ht.put('NPJava11.dll','j11');    	
+		ht.put('NPJava12.dll','j12');   
+		ht.put('NPJava13.dll','j13');    
+		ht.put('NPJava32.dll','j32');    
+		ht.put('NPJava14.dll','j14');    	
+		ht.put('npoji600.dll','j61');    
+		ht.put('NPJava131_16.dll','j16'); 
+		ht.put('NPOFFICE.DLL','mso');    	
+		ht.put('npdsplay.dll','wpm');		
+		ht.put('npwmsdrm.dll','drm');    	
+		ht.put('npdrmv2.dll','drn');    	
+		ht.put('nprjplug.dll','rjl');    	
+		ht.put('nppl3260.dll','rpl');    	
+		ht.put('nprpjplug.dll','rpv');    	
+		ht.put('npchime.dll','chm');	
+		ht.put('npCortona.dll','cor');  
+		ht.put('np32dsw.dll','dsw');    	
+		ht.put('np32asw.dll','asw')
+
+		if (navigator.plugins.length > 0)
+		{
+			temp = "";
+			moz = "";
+			key = "";
+			lastDir = "Plugins";
+			for (i = 0; i < navigator.plugins.length; i++)
+			{
+				plugin = navigator.plugins[i];
+				moz = stripFullPath(plugin.filename, lastDir);
+				if (isFirst==true)
+				{
+					key = ht.containsKey(moz);
+					if(key)
+					{
+						temp += ht.get(moz);
+						isFirst=false;
+					}
+					else
+					{
+						temp = "";
+						isFirst=false;
+					}
+				}
+				else
+				{
+					key = ht.containsKey(moz);
+					if(key)
+					{
+						temp += SEP + ht.get(moz);
+					}
+					else
+					{
+						temp += "";
+					}
+				}
+			}
+			t = stripIllegalChars(temp);
+
+		}
+		else if (navigator.mimeTypes.length > 0)
+		{
+			key = "";
+			for (i = 0; i < navigator.mimeTypes.length; i++)
+			{
+				mimeType = navigator.mimeTypes[i];
+				if (isFirst==true)
+				{
+					key = ht.containsKey(mimeType);
+					if(key)
+					{
+						t += ht.get(mimeType) + PAIR + mimeType;
+						isFirst=false;
+					}
+					else
+					{
+						t += "unknown" + PAIR + mimeType;
+						isFirst=false;
+					}
+				}
+				else
+				{
+					key = ht.containsKey(mimeType);
+					if(key)
+					{
+						t += SEP + ht.get(mimeType) + PAIR + mimeType;
+					}
+					else
+					{
+						temp += "";
+					}
+				}
+		}
+		}
+
+
+		else if (ie)
+		{
+			names = new Array(
+			"abk", 
+			"wnt", 
+			"aol", 
+			"arb", 
+			"chs", 
+			"cht", 
+			"dht", 
+			"dhj", 
+			"dan", 
+			"dsh", 
+			"heb", 
+			"ie5", 
+			"icw", 
+			"ibe", 
+			"iec", 
+			"ieh", 
+			"iee", 
+			"jap",
+			"krn",
+			"lan", 
+			"swf", 
+			"shw", 
+			"msn",
+			"wmp",
+			"obp", 
+			"oex", 
+			"net",
+			"pan", 
+			"thi", 
+			"tks", 
+			"uni", 
+			"vtc", 
+			"vnm", 
+			"mvm", 
+			"vbs", 
+			"wfd" 
+			);
+
+	
+			components = new Array(
+			"7790769C-0471-11D2-AF11-00C04FA35D02",
+			"89820200-ECBD-11CF-8B85-00AA005B4340",
+			"47F67D00-9E55-11D1-BAEF-00C04FC2D130",
+			"76C19B38-F0C8-11CF-87CC-0020AFEECF20",
+			"76C19B34-F0C8-11CF-87CC-0020AFEECF20",
+			"76C19B33-F0C8-11CF-87CC-0020AFEECF20",
+			"9381D8F2-0288-11D0-9501-00AA00B911A5",
+			"4F216970-C90C-11D1-B5C7-0000F8051515",
+			"283807B5-2C60-11D0-A31D-00AA00B92C03",
+			"44BBA848-CC51-11CF-AAFA-00AA00B6015C",
+			"76C19B36-F0C8-11CF-87CC-0020AFEECF20",
+			"89820200-ECBD-11CF-8B85-00AA005B4383",
+			"5A8D6EE0-3E18-11D0-821E-444553540000",
+			"630B1DA0-B465-11D1-9948-00C04F98BBC9",
+			"08B0E5C0-4FCB-11CF-AAA5-00401C608555",
+			"45EA75A0-A269-11D1-B5BF-0000F8051515",
+			"DE5AED00-A4BF-11D1-9948-00C04F98BBC9",
+			"76C19B30-F0C8-11CF-87CC-0020AFEECF20",
+			"76C19B31-F0C8-11CF-87CC-0020AFEECF20",
+			"76C19B50-F0C8-11CF-87CC-0020AFEECF20",
+			"D27CDB6E-AE6D-11CF-96B8-444553540000",
+			"2A202491-F00D-11CF-87CC-0020AFEECF20",
+			"5945C046-LE7D-LLDL-BC44-00C04FD912BE",
+			"22D6F312-B0F6-11D0-94AB-0080C74C7E95",
+			"3AF36230-A269-11D1-B5BF-0000F8051515",
+			"44BBA840-CC51-11CF-AAFA-00AA00B6015C",
+			"44BBA842-CC51-11CF-AAFA-00AA00B6015B",
+			"76C19B32-F0C8-11CF-87CC-0020AFEECF20",
+			"76C19B35-F0C8-11CF-87CC-0020AFEECF20",
+			"CC2A9BA0-3BDD-11D0-821E-444553540000",
+			"3BF42070-B3B1-11D1-B5C5-0000F8051515",
+			"10072CEC-8CC1-11D1-986E-00A0C955B42F",
+			"76C19B37-F0C8-11CF-87CC-0020AFEECF20",
+			"08B0E5C0-4FCB-11CF-AAA5-00401C608500",
+			"4F645220-306D-11D2-995D-00C04F98BBC9",
+			"73FA19D0-2D75-11D2-995D-00C04F98BBC9"
+			);
+
+			document.body.addBehavior("#default#clientCaps")
+			for (i = 0; i < components.length; i++)
+			{
+				ver = activeXDetect(components[i]);
+				var name = names[i];
+				if (ver)
+				{
+					if (isFirst==true)
+					{
+						t += name + PAIR + ver;
+						isFirst=false;
+					}
+					else
+					{
+						t += SEP + name + PAIR + ver;
+					}
+				}
+				else
+				{
+					t +="";
+					isFirst=false;
+				}
+			}
+		}
+		return t;
+	}
+
+	function deviceprint_timezone () {
+		var gmtHours = (new Date().getTimezoneOffset()/60)*(-1);
+		return gmtHours;
+	}
+
+	function deviceprint_language () {
+		var lang;
+
+		if (typeof(navigator.language) != "undefined")
+		{
+			lang = "lang" + PAIR + navigator.language +SEP;
+		}
+		else if (typeof(navigator.browserLanguage) != "undefined")
+		{
+			lang = "lang" + PAIR + navigator.browserLanguage + SEP;
+		}
+		else
+		{
+			lang = "lang" + PAIR + "" + SEP;
+		}
+
+		(typeof(navigator.systemLanguage) != "undefined") ? lang += "syslang" + PAIR + navigator.systemLanguage + SEP : lang += "syslang" + PAIR + "" + SEP;
+		(typeof(navigator.userLanguage) != "undefined") ? lang += "userlang" + PAIR + navigator.userLanguage : lang += "userlang" + PAIR + "";
+
+		return lang;
+	}
+
+	function deviceprint_java ()
+	{
+		var javaEnabled;
+		javaEnabled = (navigator.javaEnabled()) ? 1 : 0
+		return javaEnabled;
+	}
+
+	function deviceprint_cookie ()
+	{
+
+		var cookieEnabled=(navigator.cookieEnabled)? 1 : 0	
+		if (typeof navigator.cookieEnabled=="undefined" && !cookieEnabled)
+		{
+			document.cookie="testcookie"
+			cookieEnabled=(document.cookie.indexOf("testcookie")!=-1)? 1 : 0
+		}
+		return cookieEnabled;
+	}
+
+
+	function form_add_data(fd, name, value) {
+		if (fd && fd.length > 0) {
+			fd += "&";
+		}
+		else {
+			fd = "";
+		}
+
+		fd += name + '=' + escape(value);
+		return fd;
+	}
+
+	function form_add_deviceprint(fd, name, value) {
+		fd = form_add_data(fd, name + "d", value);
+		return fd;
+	}
+
+	function asyncpost_deviceprint(url) {
+		var xmlhttp = false;
+		/*@cc_on @*/
+		/*@if (@_jscript_version >= 5)
+		 try {
+		  xmlhttp = new ActiveXObject("Msxml2.XMLHTTP");
+		 } catch (e) {
+		  try {
+		   xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+		  } catch (E) {
+		   xmlhttp = false;
+		  }
+		 }
+		@end @*/
+
+		if (!xmlhttp && typeof XMLHttpRequest!='undefined') {
+		  xmlhttp = new XMLHttpRequest();
+		}
+		if (!xmlhttp) return false;
+
+		xmlhttp.open("POST", url, true);
+		xmlhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+		var fd;
+		fd = form_add_deviceprint(fd, "fp_browser", deviceprint_browser());
+		fd = form_add_deviceprint(fd, "fp_display", deviceprint_display());
+		fd = form_add_deviceprint(fd, "fp_software", deviceprint_software());
+		fd = form_add_deviceprint(fd, "fp_timezone", deviceprint_timezone());
+		fd = form_add_deviceprint(fd, "fp_language", deviceprint_language());
+		fd = form_add_deviceprint(fd, "fp_java", deviceprint_java());
+		fd = form_add_deviceprint(fd, "fp_cookie", deviceprint_cookie());
+
+		xmlhttp.send(fd); // fire and forget
+		return true;
+	}
+
+	function post_deviceprint()
+	{
+	    /*
+	   
+
+		document.forms[0].fp_browser.value = URLencode(deviceprint_browser());
+		document.forms[0].fp_screen.value = URLencode(deviceprint_display());
+		document.forms[0].fp_software.value = URLencode(deviceprint_software());
+		document.forms[0].fp_timezone.value = URLencode(deviceprint_timezone());
+		document.forms[0].fp_language.value = URLencode(deviceprint_language());
+		document.forms[0].fp_java.value = URLencode(deviceprint_java());
+		document.forms[0].fp_cookie.value = URLencode(deviceprint_cookie());
+		*/
+		document.forms[0].pm_fp.value = encoded_deviceprint();
+		return true;
+	}
+
+	/*
+	URL encode the string to make it portable safely
+	*/
+	function URLencode(text)
+	{		
+		encodedString = escape(text).replace(/\*/g,"%2A").replace(/\+/g,"%2B")
+									.replace(/-/g,"%2D").replace(/\./g,"%2E")
+									.replace(/\//,"%2F").replace(/_/g,"%5F")
+									.replace(/@/g,"%40");
+
+		return encodedString;
+	}
+
+	function encode_deviceprint()
+	{
+		var t = "version=" + ver +"&pm_fpua=" + deviceprint_browser("") + "&pm_fpsc=" + deviceprint_display("") + "&pm_fpsw=" + deviceprint_software("")
+				+ "&pm_fptz=" + deviceprint_timezone("")+ "&pm_fpln=" + deviceprint_language("")
+				+ "&pm_fpjv=" + deviceprint_java("") + "&pm_fpco=" + deviceprint_cookie("");
+		return URLencode(t);
+	}
+
+
+	function decode_deviceprint()
+	{	var t = "version=" + ver +"&pm_fpua=" + deviceprint_browser("") + "&pm_fpsc=" + deviceprint_display("") + "&pm_fpsw=" + deviceprint_software("")
+				+ "&pm_fptz=" + deviceprint_timezone("")+ "&pm_fpln=" + deviceprint_language("")
+				+ "&pm_fpjv=" + deviceprint_java("") + "&pm_fpco=" + deviceprint_cookie("");
+
+		return unescape(URLencode(t));
+	}
+
+	function post_fingerprints( form )
+	{
+		form.SiteKeyDeviceFingerPrint.value = add_deviceprint();
+	}
+
+	function add_deviceprint()
+	{
+		var t = "version=" + ver +"&pm_fpua=" + deviceprint_browser("") + "&pm_fpsc=" + deviceprint_display("") + "&pm_fpsw=" + deviceprint_software("")
+				+ "&pm_fptz=" + deviceprint_timezone("")+ "&pm_fpln=" + deviceprint_language("")
+				+ "&pm_fpjv=" + deviceprint_java("") + "&pm_fpco=" + deviceprint_cookie("");
+		return t;
+	}
+
+	function Hashtable()
+	{
+    	var keysToIndex = {__indexToValue:[],__indexToKeys:[]};
+	    var activeEnum = [];
+    	var tableLength = 0;
+	    var self = this;
+
+    	function Enumeration(arrNm)
+	    {
+        	var lastIndex = null;
+	        var enumIndex = 0;
+    	    while(typeof activeEnum[enumIndex] == 'number')enumIndex += 1;
+        	activeEnum[enumIndex] = 0;
+
+	        /*
+    	    Returns true if this Enumerator/ has another entry to
+	        return, else returns false.
+    	    */
+        	this.hasNext = this.hasMoreElements = function(){
+            if(activeEnum[enumIndex] < tableLength){
+                return true;
+            }else{
+                if(typeof activeEnum[enumIndex] == 'number'){
+                    activeEnum[enumIndex] = null;
+                }
+                return false;
+            }
+        };
+
+        this.next = this.nextElement = function(){
+            if(this.hasNext){
+                lastIndex = activeEnum[enumIndex];
+                return keysToIndex[arrNm][activeEnum[enumIndex]++];
+            }else{
+                return null;
+            }
+        };
+
+     
+        this.remove = function(){
+            if(typeof lastIndex == 'number'){
+                self.remove(keysToIndex.__indexToKeys[lastIndex]);
+                lastIndex = null;
+            }
+        	};
+    	};
+    	
+	    this.get = function(key){
+        if(typeof keysToIndex[key] == 'number'){
+            return keysToIndex.__indexToValue[keysToIndex[key]];
+        }else{
+            return null;
+        }
+		};
+	    
+	    this.put = function(key, value){
+    	if(typeof keysToIndex[key] == 'number'){
+            keysToIndex.__indexToValue[keysToIndex[key]] = value;
+        }else{
+            keysToIndex[key] = tableLength;
+            keysToIndex.__indexToValue[tableLength] = value;
+            keysToIndex.__indexToKeys[tableLength++] = key;
+        }
+    	};
+    	
+	    this.remove = function(key){
+    	    var remIndex = keysToIndex[key];
+        	if(typeof remIndex == 'number'){
+            	delete keysToIndex[key];
+	            tableLength -= 1;
+    	        for(var c = remIndex;c < tableLength;c++){
+        	        keysToIndex.__indexToValue[c] =
+                                     keysToIndex.__indexToValue[c+1];
+            	    keysToIndex[(keysToIndex.__indexToKeys[c] =
+                                keysToIndex.__indexToKeys[c+1])] = c;
+	            }
+    	        for(var c = 0;c < activeEnum.length;c++){
+        	        if((activeEnum[c])&&(remIndex < activeEnum[c])){
+            	        activeEnum[c] -= 1;
+                }
+            }
+        	}
+    	};
+
+	  
+    	this.size = function(){
+        	return tableLength;
+	    };
+
+    	this.__enumerate = function(type){
+		    return new Enumeration(type);
+    	};
+
+		
+		Hashtable.prototype.elements = function(){
+    		return this.__enumerate('__indexToValue');
+		}
+
+		
+		Hashtable.prototype.keys = function(){
+		    return this.__enumerate('__indexToKeys');
+		}
+
+		
+		Hashtable.prototype.clear = function(){
+	    	var e = this.keys();
+	    	while(e.hasNext()){
+    	    	this.remove(e.next());
+    		}
+		}
+
+		Hashtable.prototype.toString = function(){
+	    var n,e = this.keys();
+    	var st = '';
+	    while(e.hasNext()){
+    	    n = e.next();
+        	st += n+' =&gt; '+this.get(n)+'\r\n';
+	    }
+    	return st;
+
+		}
+
+		
+		Hashtable.prototype.contains = function(testVal){
+    		var e = this.elements();
+		    while(e.hasNext()){
+    	    	if(e.next() == testVal)return true;
+		    }
+    		return false;
+		}
+
+		
+		Hashtable.prototype.containsValue = Hashtable.prototype.contains;
+
+		
+		Hashtable.prototype.containsKey = function(testKey){
+    		return (this.get(testKey) != null);
+		}
+
+		Hashtable.prototype.isEmpty = function(){
+    		return (this.size() == 0);
+		}
+
+		
+		Hashtable.prototype.putAll = function(hTable){
+	    	if(hTable.constructor == Hashtable){
+	        	var n,e = hTable.keys();
+	        	while(e.hasNext()){
+	            	n = e.next();
+		            this.put(n, hTable.get(n));
+	    	    }
+	    	}
+		}
+				
+		Hashtable.prototype.clone = function(){
+    		var ht = new Hashtable();
+	    	ht.putAll(this);
+	    	return ht;
+		}
+	
+		Hashtable.prototype.equals = function(o){
+    	return (o == this);
+		}
+}
+
+/*]]>*/</script>
+<script language="JavaScript" type="text/javascript">/*<![CDATA[*/
+					function emailSecurity() {
+					
+					
+					window.open("https://www.applyonlinenow.com/emuk/internetsecurity/index.html","popup","scrollbars,width=775,height=510,resizable");
+					}
+					function launchDemo() {
+					window.open("https://www.applyonlinenow.com/uk/ocsdemo/mbna/demo_player.html","newwin","width=790,height=585,resizable=no,toolbar=no,scrollbars=no,statusbar=no,directories=no,menubar=no");
+					}
+				  
+                    function topFrame(){
+                     if (top != self) {top.location=self.location;}
+
+					 }
+					function wherePassword()
+					{
+						siteKeyHelp("wherePassword");
+					}
+				    /*]]>*/</script>
+<script type="text/javascript" language="JavaScript" src="/NASApp/NetAccessXX/olbweb/uk/en/common/mbox.js">
+<!---->
+</script>
+<script language="javascript" type="text/javascript" src="/NASApp/NetAccessXX/olbweb/uk/en/mbna/js/jquery-1.4.2.min.js">
+<!---->
+</script>
+					<!--[if IE 6]>
+				
+<script type="text/javascript" language="javascript">document.ie6pngFixBlankImageUrl = '/NASApp/NetAccessXX/olbweb/uk/en//common/blank1x1.gif';</script>
+<script type="text/javascript" language="JavaScript" src="/NASApp/NetAccessXX/olbweb/uk/en//common/iepngfix_tilebg.js">/**/</script>
+<script type="text/javascript" language="JavaScript" src="/NASApp/NetAccessXX/olbweb/uk/en//common/iepngfix.js">/**/</script>
+					<![endif]-->
+				</head>
+<body xmlns="" onLoad="javascript:topFrame();">
+			<!--[if IE]>
+                <div id="browserIe">
+			<![endif]-->
+
+            <!--[if IE 6]>
+                <div id="browserIe6">
+			<![endif]-->
+
+            <!--[if IE 7]>
+                <div id="browserIe7">
+			<![endif]-->
+
+            <!--[if IE 8]>
+                <div id="browserIe8">
+			<![endif]-->
+        
+<div id="brandingHeader">
+<!---->
+</div>
+<div id="wrapper" style="width:756px;">
+<div xmlns="http://www.w3.org/1999/xhtml" id="header" style="width:758px;">
+<div id="topMenu">
+<ul>
+<li style="width:11em;"> </li>
+<li>
+<a target="_blank" href="InfoScreen?key=handslanding" id="helpSupportLinkID">Help &amp; support</a>
+</li>
+<li>
+<img src="/NASApp/NetAccessXX/olbweb/uk/en//mbna/images/global-menu-separator.gif" alt="" class="sep"/>
+</li>
+<li>
+<a target="_blank" href="InfoScreen?key=contacts">Contact Us</a>
+</li>
+<li style="width:6.5em;">
+<!---->
+</li>
+</ul>
+<div class="divClear">
+<!-- -->
+</div>
+</div>
+<div id="brandingLogoContainer">
+<div style="width:139px;height:91px;float:left;overflow:hidden;">
+<a href="http://www.mbna.co.uk" target="_blank">
+<img border="0" title="MBNA Bank of America" alt="MBNA Bank of America" src="/NASApp/NetAccessXX/olbweb/uk/en/mbna/images/mbna_logo.png" style="position:absolute;width:139px;height:91px;"/>
+</a>
+<!---->
+</div>
+<div class="divClear">
+<!-- -->
+</div>
+</div>
+<div class="divClear">
+<!-- -->
+</div>
+<div id="cardButtons">
+		     
+		    <div class="divClear">
+<!-- -->
+</div>
+</div>
+<div class="divClear">
+<!-- -->
+</div>
+<div id="headerTextLine">
+<div id="loggedInPersonData">
+			 
+		    </div>
+<div id="cardData">
+			 
+		    </div>
+<div class="divClear">
+<!-- -->
+</div>
+</div>
+<div class="divClear">
+<!-- -->
+</div>
+<div id="mainNavigation">
+<div id="blankNavigation">
+<div id="mainNavigationLeftPlaceholder">
+			     
+			</div>
+<div id="mainNavigationRightPlaceholder">
+			     
+			</div>
+<div id="mainNavigationBlankCenter">
+			     
+			</div>
+</div>
+</div>
+</div>
+<div xmlns="http://www.w3.org/1999/xhtml" id="welcomeContent" class="contentWithBorder">
+<div id="welcomeContentData">
+<h1>Online Card Services</h1>
+<div class="mboxDefault">
+<div class="welcomeLoginPageAssetBoxLarge">
+<a href="http://www.mbna.co.uk/protection-security/mcafee/index.html" target="_blank">
+<img border="0" alt="Keep your PC safe with McAfees Online Suite worth 59.98, complimentary to you for 12 months. Visit Your account page" src="https://www.bankcardservices.co.uk/NASApp/NetAccessXX/DigitalAsset?country=UK&amp;assetNumber=572"/>
+</a>
+</div>
+<div class="divClear">
+<!---->
+</div>
+<p class="info">Now you can manage your credit card wherever and whenever it suits you. From paying your bill to checking your statements, Online Card Services makes it just a little easier to take care of all the little details in your life.</p>
+<div class="welcomeLoginPageAssetBox">
+<a href="https://www.mbna.co.uk/card-services-benefits/mobile-banking/index.html" target="_blank">
+<img border="0" alt="Mobile Banking manage your account on the move" src="https://www.mbna.co.uk/lib-ui/img/banners/olb/m015_mobile_banking_173_84.jpg"/>
+</a>
+</div>
+<div class="welcomeLoginPageAssetBoxMiddle">
+<a href="https://www.mbna.co.uk/ratechange/" target="_blank">
+<img border="0" alt="Principles on interest rate changes.   Our commitment to you. Click here." src="https://www.mbna.co.uk/lib-ui/img/banners/olb/m015_principles_173_84.jpg"/>
+</a>
+</div>
+<div class="welcomeLoginPageAssetBox">
+<a href="LeavingSiteScreen?url=https://www.simplyswitch.com/energy/startpage.aspx?referid=mbnahome" target="_blank">
+<img border="0" alt="Great savings! Save up to Â£390* per year on your household bills. Click here." src="https://www.mbna.co.uk/lib-ui/img/banners/olb/m015_simply_switch_173_84.jpg"/>
+</a>
+</div>
+<div class="divClear">
+<!---->
+</div>
+</div>
+<script type="text/javascript" language="JavaScript">
+			mboxCreate("mbna_olb_mbna_logon_masthead");
+		</script>
+</div>
+<div id="sidebar" class="welcomeScreen">
+<div class="sidebarBox">
+<div class="sidebarBoxTop">
+<h2>Login</h2>
+</div>
+<div class="sidebarBoxContent">
+<p>Our secure Online Card Services site is open all day, every day for your convenience.</p>
+<form action="LoginProcess" method="post" name="olb_login">
+<input type="hidden" name="SiteKeyDeviceFSO" id="SiteKeyDeviceFSO" value="INACCESSIBLE"/>
+<input type="hidden" name="SiteKeyDeviceFingerPrint" id="SiteKeyDeviceFingerPrint"/>
+<input type="hidden" name="processEventKey" value="InitialSubmitEvent"/>
+<noscript>
+<input type="hidden" value="disabled" name="javascript"/>
+</noscript>
+<span class="bodyText">
+<label for="username" class="normalLineHeightLabel">Username:</label>
+</span>
+<div class="divClear">
+<!---->
+</div>
+<input name="userID" value="" maxlength="32" id="username" class="disableAutoComplete" autocomplete="off"/>
+<div class="divClear">
+<!---->
+</div>
+<div style="float:right;">
+<button name="" type="submit" class="styledButton right" id="">
+<span class="styledButtonDynamicWidth">
+<span class="styledButtonRight">Login</span>
+</span>
+</button>
+</div>
+<div class="divClear">
+<!---->
+</div>
+</form>
+<script type="text/javascript" language="JavaScript">
+				post_fingerprints(document.olb_login);
+			    </script>
+<p id="underLoginLinks">
+				Forgotten your<br/>
+<a href="ResetPasswordScreen">username or password</a>?
+			    </p>
+</div>
+<div class="sidebarBoxBottom">
+<!---->
+</div>
+<div class="divClear">
+<!---->
+</div>
+</div>
+<div class="divClear">
+<!---->
+</div>
+<div class="mboxDefault">
+<div class="sidebarBox">
+<div class="sidebarBoxTop">
+<h2>New to online services?</h2>
+</div>
+<div class="sidebarBoxContent">
+<p>Registering to manage your card with Online Card Services is quick and easy.</p>
+<form action="EnrolmentScreen" method="get">
+<div style="float:right;">
+<button name="" type="submit" class="styledButton right" id="">
+<span class="styledButtonDynamicWidth">
+<span class="styledButtonRight">Register</span>
+</span>
+</button>
+</div>
+<div class="divClear">
+<!---->
+</div>
+</form>
+<p>
+                                                        Want to learn more?<br/>
+<a href="#" onclick="javascript:launchDemo();">
+                                                            View demo <span class="auralText"> (opens a new window)</span>
+</a>
+</p>
+</div>
+<div class="sidebarBoxBottom">
+<!---->
+</div>
+<div class="divClear">
+<!---->
+</div>
+</div>
+</div>
+<script type="text/javascript" language="JavaScript">
+			mboxCreate("mbna_olb_mbna_logon_highlight1");
+		</script>
+<div class="divClear">
+<!---->
+</div>
+</div>
+</div>
+<div xmlns="http://www.w3.org/1999/xhtml" class="divClear">
+<!---->
+</div>
+<div xmlns="http://www.w3.org/1999/xhtml" id="contentContainerBottomBorder">
+<div id="contentContainerBottomBorderLeft">
+<!---->
+</div>
+<div id="contentContainerBottomBorderRight">
+<!---->
+</div>
+<div id="contentContainerBottomBorderCenter">
+<!---->
+</div>
+<div class="divClear">
+<!---->
+</div>
+</div>
+<div xmlns="http://www.w3.org/1999/xhtml" class="divClear">
+<!---->
+</div>
+<div xmlns="http://www.w3.org/1999/xhtml" class="divClear">
+<!-- -->
+</div>
+<div xmlns="http://www.w3.org/1999/xhtml">
+<div id="footer">
+<div id="footerLeft">
+<p>© 2011 MBNA Europe Bank Limited</p>
+</div>
+<div id="footerRight">
+<ul>
+<li>
+<a href="AccessibilityScreen?acctID=&amp;loggedIn=false&#10;&#9;&#9;&#9;&#9;&#9;" class="footer" target="_blank">Accessibility<span class="auralText"> opens a new window</span>
+</a>
+</li>
+<li>
+<img src="/NASApp/NetAccessXX/olbweb/uk/en//mbna/images/footer-separator.gif" alt="" class="sep"/>
+</li>
+<li>
+<a href="InfoScreen?key=terms&amp;loggedIn=false" class="footer" target="_blank">Terms of Use<span class="auralText"> Opens new window</span>
+</a>
+</li>
+<li>
+<img src="/NASApp/NetAccessXX/olbweb/uk/en//mbna/images/footer-separator.gif" alt="" class="sep"/>
+</li>
+<li>
+<a target="_blank" href="InfoScreen?key=privacy&amp;loggedIn=false" class="footer">Privacy<span class="auralText"> Opens new window</span>
+</a>
+</li>
+</ul>
+</div>
+<div class="divClear">
+<!-- -->
+</div>
+</div>
+</div>
+</div>
+			<!--[if IE]>
+                    </div>
+                </div>
+			<![endif]-->
+        
+<input type="hidden" name="analyticPageName" id="analyticPageName" value="WelcomeLoginScreen"/>
+<input type="hidden" name="analyticBrand" id="analyticBrand" value="mbna"/>
+<input type="hidden" name="analyticAffinity" id="analyticAffinity" value="mbna"/>
+<SCRIPT language="JavaScript">var mbnaesPageID = ''; mbnaesPageID += 'WelcomeLoginScreen';</SCRIPT>
+<script language="JavaScript" type="text/javascript" src="/NASApp/NetAccessXX/olbweb/uk/en/mbna/js/sasAnalytics/SpeedTrapInsert.js">
+<!---->
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<HTML>
+<HEAD>
+<TITLE>Bank of Ireland 365 Online - Navigation &amp; Content Frame</TITLE>
+	<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<meta http-equiv="pragma" content="no-cache">
+<meta http-equiv="Cache-Control" content="no-cache">
+<meta http-equiv="Expires" content="Wed, 30 Jan 1980 09:00:00 GMT">
+</HEAD>
+<FRAMESET COLS='183,*' border=0>
+<FRAME SRC='navbar.htm?status=3&row=001' NAME="navigation_frame"  noresize="noresize" scrolling="no" frameborder="0" title="Frame containing the navigation">
+<FRAME SRC='txlist.htm?row=001' NAME="content_frame" noresize="noresize" scrolling="auto" frameborder="0" title="Frame containing the main content screen">
+</FRAMESET>
+</HTML>
