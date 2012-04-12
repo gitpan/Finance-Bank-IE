@@ -1,3 +1,11 @@
+0.26
+    Fix MBNA account-in-credit detection (returns negative balance)
+    Fix MBNA due-date reparsing when due date is blank
+    (lots of changes in 0.25 not mentioned below!)
+    Add funds transfer to PTSB module (subsequently broken)
+	Rework PTSB to deal with changes to beneficiaries page
+	Rework BoI to deal with site makeover
+
 0.25
     Almost complete code coverage in tests for PTSB, including Mock
 

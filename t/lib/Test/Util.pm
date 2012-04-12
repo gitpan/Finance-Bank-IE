@@ -2,10 +2,6 @@
 
 Test::Util - common code for testing
 
-=head1 SYNOPSIS
-
-
-
 =head1 DESCRIPTION
 
 =over
@@ -57,6 +53,12 @@ sub getconfig {
     return;
 }
 
+=item * my $file = Test::Util::getfile( $filename [, $context );
+
+Return the contents of data/$context/$filename. If context is unset, it is determined from the caller's filename (e.g. PTSB.t results in a context of PTSB). Some transforms may be done on filename, e.g. trimming a query-string from the end. Returns undef if the file cannot be found.
+
+=cut
+
 sub getfile {
     my $file = shift;
     my $context = shift;
@@ -89,6 +91,14 @@ sub getfile {
         last;
     }
 
+}
+
+sub setup {
+    my ( $MODULE_UNDER_TEST ) = (caller)[1] =~ m@/?(\w+)\.t$@;
+
+    eval "use Test::MockBank::$MODULE_UNDER_TEST\n";
+
+    $MODULE_UNDER_TEST;
 }
 
 =back

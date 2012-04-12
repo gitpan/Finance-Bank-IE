@@ -10,6 +10,7 @@ use URI::Escape;
 my %GLOBALSTATE = (
                    loggedin => 0,
                    config => {},
+                   requestcount => 0,
                   );
 
 sub globalstate {
@@ -18,6 +19,9 @@ sub globalstate {
 
     if ( defined( $value )) {
         $GLOBALSTATE{$key} = $value;
+# what I should be doing, except I'm using this as a set/get function :(
+#    } else {
+#        delete $GLOBALSTATE{$key};
     }
 
     $GLOBALSTATE{$key};
@@ -34,13 +38,20 @@ sub on_page {
     my $uri = shift;
     my $usepage = shift;
 
-    $self->globalstate( 'on_page', [ $uri, $usepage ] );
+    if ( !$uri ) {
+        # argh
+        delete $GLOBALSTATE{on_page};
+    } else {
+        $self->globalstate( 'on_page', [ $uri, $usepage ] );
+    }
 }
 
 sub simple_request {
     my ( $self, $request ) = @_;
 
-    print STDERR "# Mock Bank request for " . $request->uri . ", login state " .
+    $GLOBALSTATE{requestcount}++;
+
+    print STDERR "# Mock Bank request " . $GLOBALSTATE{requestcount} . " for " . $request->uri . ", login state " .
       ( Test::MockBank->globalstate( 'loggedin' )||0) . "\n"
       if $ENV{DEBUG};
 
@@ -71,7 +82,15 @@ sub simple_request {
     if ( my $substitute = Test::MockBank->globalstate( 'on_page' )) {
         my $uri = $request->uri;
         if ( $uri eq $substitute->[0] ) {
-            $request->uri( $substitute->[1] );
+            if ( $substitute->[1] ) {
+                $request->uri( $substitute->[1] );
+            } else {
+                print STDERR "# failing per request when " . $request->method . "ing " . $request->uri . "\n"
+                  if $ENV{DEBUG};
+                $response->code( RC_INTERNAL_SERVER_ERROR );
+                $response->content( 'FAIL' );
+                return $response;
+            }
         }
     }
 
@@ -110,10 +129,10 @@ sub get_param {
 
     my $value;
     map {
-        $value = $_->[1] if $_->[0] eq $param;
+        $value = $_->[1] if $_->[0] eq $param or uri_unescape( $_->[0] ) eq $param;
     } @{$args};
 
-    $value = uri_unescape( $value );
+    $value = uri_unescape( $value ) if $value;
 
     $value;
 }

@@ -58,6 +58,15 @@ sub login {
     my $res = $self->_agent()->get( 'https://www.bankcardservices.co.uk/' );
     $self->_save_page();
 
+    if ( !$res->is_success()) {
+        $self->_dprintf( "Unable to fetch initial page" );
+        if ( $res->message ) {
+            $self->_dprintf( " ($res->message)" );
+        }
+        $self->_dprintf( "\n" );
+        return;
+    }
+
     # without this, the redirect link text is unfindable.  thank
     # you... netscape?  doubleplus thankyou for using meta instead of
     # a redirect code
@@ -333,7 +342,9 @@ sub parse_account_summary {
                 $title = 'due';
             } elsif ( $title =~ /your outstanding balance/i ) {
                 $title = 'balance';
+                my $cr = $text =~ /\d+(CR)/;
                 $text =~ s/[^0-9]+refresh balance//i;
+                $text .= "CR" if $cr;
             } elsif ( $title =~ /available for cash/i ) {
                 $title = 'space',
             } else {
@@ -359,7 +370,8 @@ sub parse_account_summary {
             $detail{currency} = $currency;
             $amount =~ s/,//g;
             if ( $credit && $credit =~ /CR/ ) {
-                $amount = - $amount;
+                $amount =~ s/CR//;
+                $amount = -$amount;
             }
             $detail{$field} = $amount;
         }
@@ -367,20 +379,22 @@ sub parse_account_summary {
     }
 
     # minor fixups to match old behaviour. needlessly ugly.
-    my ( $day, $mon, $year ) = split( / /, $detail{due} );
-    $mon = 1 if $mon eq 'Jan';
-    $mon = 2 if $mon eq 'Feb';
-    $mon = 3 if $mon eq 'Mar';
-    $mon = 4 if $mon eq 'Apr';
-    $mon = 5 if $mon eq 'May';
-    $mon = 6 if $mon eq 'Jun';
-    $mon = 7 if $mon eq 'Jul';
-    $mon = 8 if $mon eq 'Aug';
-    $mon = 9 if $mon eq 'Sep';
-    $mon = 10 if $mon eq 'Oct';
-    $mon = 11 if $mon eq 'Nov';
-    $mon = 12 if $mon eq 'Dec';
-    $detail{min} = $detail{min} . " due by $day/$mon/$year";
+    if ( $detail{due}) {
+        my ( $day, $mon, $year ) = split( / /, $detail{due} );
+        $mon = 1 if $mon eq 'Jan';
+        $mon = 2 if $mon eq 'Feb';
+        $mon = 3 if $mon eq 'Mar';
+        $mon = 4 if $mon eq 'Apr';
+        $mon = 5 if $mon eq 'May';
+        $mon = 6 if $mon eq 'Jun';
+        $mon = 7 if $mon eq 'Jul';
+        $mon = 8 if $mon eq 'Aug';
+        $mon = 9 if $mon eq 'Sep';
+        $mon = 10 if $mon eq 'Oct';
+        $mon = 11 if $mon eq 'Nov';
+        $mon = 12 if $mon eq 'Dec';
+        $detail{min} = $detail{min} . " due by $day/$mon/$year";
+    }
 
     $detail{unposted} ||= 0;
 

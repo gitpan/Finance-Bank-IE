@@ -33,35 +33,48 @@ close( $pii );
 
 my $success = -1;
 my $augmented_report = "";
+
 find( { wanted => \&scrubbit, no_chdir => 1 }, "data" );
+
 SKIP: {
-    skip "no PII found", 1 if !@pii;
+    skip "no PII found in '$pii_file'", 1 if !@pii;
     skip "no files found to scrub", 1 if $success == -1;
+
     ok( $success == 1, "scrubbing $augmented_report" );
 }
 
 sub scrubbit {
     return unless -f $File::Find::name;
+    return if $File::Find::name eq 'data/pii.txt';
+    return if $File::Find::name eq 'data/.cvsignore';
+    return if $File::Find::name =~ /\bCVS\b/;
+    #my ( $bank ) = $File::Find::name =~ m@data/(?:saved.*?/)?(\w+)/@;
     my ( $bank ) = $File::Find::name =~ m@data/(\w+)/@;
-    return unless $bank;
+    if ( !$bank ) {
+        #diag "unable to determine bank responsible for $File::Find::name\n";
+        return;
+    }
 
     # a wizard wheeze
-    return if (!grep /\/$bank\.pm$/, keys %INC );
+    if (!grep /\/$bank\.pm$/, keys %INC ) {
+        #diag "$File::Find::name is for unknown bank '$bank'";
+        return;
+    }
 
     open( my $unscrubbed, "<", $File::Find::name ) or die "$File::Find::name: $!";
     {
         local $/ = undef;
         my $content = <$unscrubbed>;
         my $scrubbed = eval "return Finance::Bank::IE::$bank->_scrub_page( \$content )";
-        $augmented_report = $File::Find::name;
         if ( !$scrubbed ) {
             $success = 0;
+            $augmented_report = $File::Find::name;
             diag "Returned empty string when scrubbing $File::Find::name with $bank\n";
         } else {
             for my $pii ( @pii ) {
-                $augmented_report = "'$pii' from " . $File::Find::name;
                 if ( $scrubbed =~ /\b$pii\b/si ) {
                     $success = 0;
+                    $augmented_report = "'$pii' from " . $File::Find::name;
                     diag "$bank failed to scrub '$pii' from $File::Find::name\n";
                     last;
                 }

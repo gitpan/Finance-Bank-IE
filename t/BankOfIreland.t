@@ -2,7 +2,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 28;
+use Test::More tests => 26;
 
 use Test::MockModule;
 
@@ -10,6 +10,8 @@ use lib qw( t/lib );
 
 use Test::Util;
 use Test::MockBank::BankOfIreland;
+
+$| = 1;
 
 our $lwp_useragent_mock;
 
@@ -78,7 +80,7 @@ ok( $@ =~ /^Your login details are incorrect/,
 
 Finance::Bank::IE::BankOfIreland->reset and
   Test::MockBank->globalstate( 'loggedin', 0 );
-Test::MockBank->fail_on_iterations( 3 );
+Test::MockBank->fail_on_iterations( 1 );
 eval {
     Finance::Bank::IE::BankOfIreland->login_dance( $config );
 };
@@ -86,7 +88,7 @@ ok( $@ =~ /^Failed to get login page./, "handle login page failure (1)" );
 
 Finance::Bank::IE::BankOfIreland->reset and
   Test::MockBank->globalstate( 'loggedin', 0 );
-Test::MockBank->fail_on_iterations( 4 );
+Test::MockBank->fail_on_iterations( 2 );
 eval {
     Finance::Bank::IE::BankOfIreland->login_dance( $config );
 };
@@ -94,19 +96,11 @@ ok( $@ =~ /^Failed to submit login form/, "handle login page failure (2)" ) or d
 
 Finance::Bank::IE::BankOfIreland->reset and
   Test::MockBank->globalstate( 'loggedin', 0 );
-Test::MockBank->fail_on_iterations( 5 );
+Test::MockBank->fail_on_iterations( 3 );
 eval {
     Finance::Bank::IE::BankOfIreland->login_dance( $config );
 };
 ok( $@ =~ /^Failed to submit login form/, "handle login page failure (3)" ) or diag $@;
-
-Finance::Bank::IE::BankOfIreland->reset and
-  Test::MockBank->globalstate( 'loggedin', 0 );
-Test::MockBank->fail_on_iterations( 6 );
-eval {
-    Finance::Bank::IE::BankOfIreland->login_dance( $config );
-};
-ok( $@ =~ /^Failed to get Ha_Det/, "handle login page failure (4)" ) or diag $@;
 
 # check_balance()
 Finance::Bank::IE::BankOfIreland->reset and
@@ -118,18 +112,21 @@ ok( @accounts = Finance::Bank::IE::BankOfIreland->check_balance( $config ),
 Test::MockBank->globalstate( 'loggedin', 0 );
 ok( @accounts = Finance::Bank::IE::BankOfIreland->check_balance(),
     "cached config (check_balances)" );
+my $testaccount = shift @accounts;
 
-Test::MockBank->fail_on_iterations( 2 );
+Finance::Bank::IE::BankOfIreland->reset and
+  Test::MockBank->globalstate( 'loggedin', 0 );
+Test::MockBank->on_page( 'https://www.365online.com/online365/spring/accountSummary?execution=e2s1', undef );
 eval {
-    Finance::Bank::IE::BankOfIreland->check_balance();
+    Finance::Bank::IE::BankOfIreland->check_balance( $config );
 };
-ok( $@ =~ /^Failed to get account summary page/,
+ok( $@ =~ /^Failed to submit login form/,
     "handle accounts page failure (1)" );
+Test::MockBank->on_page();
 
 # account_details()
 Finance::Bank::IE::BankOfIreland->reset and
-  Test::MockBank->globalstate( 'loggedin', 0 );
-my $testaccount = shift @accounts;
+    Test::MockBank->globalstate( 'loggedin', 0 );
 ok( Finance::Bank::IE::BankOfIreland->account_details( $testaccount->nick, $config ), "get details for BoI account " . $testaccount->nick );
 
 Test::MockBank->globalstate( 'loggedin', 0 );
@@ -143,7 +140,7 @@ Finance::Bank::IE::BankOfIreland->reset and
 ok( $benes = Finance::Bank::IE::BankOfIreland->list_beneficiaries( $testaccount, $config ), "get beneficiaries for BoI account " . $testaccount->nick );
 
 Test::MockBank->globalstate( 'loggedin', 0 );
-ok( $benes = Finance::Bank::IE::BankOfIreland->list_beneficiaries( $testaccount ), "get beneficiaries for BoI account " . $testaccount->nick );
+ok( $benes = Finance::Bank::IE::BankOfIreland->list_beneficiaries( $testaccount ), "get beneficiaries for BoI account " . $testaccount->nick . " (cached config)" );
 
 my $testbeneficiary;
 ( $testbeneficiary ) = grep { $_->{status} eq 'Active' } @{$benes};
@@ -169,7 +166,7 @@ SKIP:
     my $test_builder = Test::More->builder();
     my $first_funds_transfer_test = $test_builder->current_test();
 
-    Finance::Bank::IE::BankOfIreland->reset and
+    Finance::Bank::IE::BankOfIreland->reset() and
         Test::MockBank->globalstate( 'loggedin', 0 );
     ok( Finance::Bank::IE::BankOfIreland->funds_transfer( $testaccount->nick, $testbeneficiary->nick, 1, $config ), "funds transfer" );
 
@@ -206,8 +203,6 @@ for my $bene ( @{$benes} ) {
         last;
     }
 }
-
-ok( Finance::Bank::IE::BankOfIreland->activate_beneficiary( $testaccount, $testbene, "0000001" ), "activated beneficiary" );
 
 # _scrub_page
 {

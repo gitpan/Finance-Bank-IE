@@ -2,7 +2,7 @@
 use warnings;
 use strict;
 
-use Test::More tests => 18;
+use Test::More tests => 19;
 
 use Test::MockModule;
 
@@ -44,8 +44,8 @@ ok( @accounts, "can retrieve accounts" );
 ok( scalar(@accounts) == 2, "found two accounts" );
 isa_ok( $accounts[0], "Finance::Bank::IE::MBNA::Account", "account" );
 ok( $accounts[0]->{account_no}, "account has an account number" );
-ok( $accounts[0]->{balance} eq 77.39, "found correct balance" )
-    or diag "balance was " . $accounts[0]->{balance};
+ok( $accounts[0]->{balance} eq -77.39, "found correct balance (credit)" );
+ok( $accounts[1]->{balance} eq 1511.44, "found correct balance (debit)" );
 
 # account zero has no transactions
 my $test_account = $accounts[1];

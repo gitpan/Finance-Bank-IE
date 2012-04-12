@@ -26,9 +26,9 @@
 	</HEAD>
 	<body bottomMargin="0" bgColor="white" leftMargin="0" topMargin="0" rightMargin="0">
 		<form name="frmLogin1" method="post" action="login.aspx?ref5" id="frmLogin1" autocomplete="off">
-<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="" />
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="" /="/"
 
-<input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="" />
+<input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="" /="/"
 			<table cellSpacing="0" cellPadding="0" width="760" align="center" bgColor="#ffffff" border="0">
 				<tr>
 					<td>
@@ -65,7 +65,7 @@
 													<td class="padr" align="right" width="50%"><input name="txtLogin" type="text" maxlength="12" id="txtLogin" tabindex="1" class="btm" onKeyup="FocusNext();" /></td>
 												</tr>
 												<tr>
-													<td colSpan="2"><span> (Printed on&nbsp;your ATM/Laser card)</span></td>
+													<td colSpan="2"><span> (Printed on your Visa Debit Card)</span></td>
 												</tr>
 												<tr>
 													<td class="btm2" width="50%"><label for="txtPassword"><strong>Internet Password:</strong></label></td>
@@ -85,11 +85,11 @@
 											read the following;</p>
 										<ul>
 											<li>
-												<a id="HyperLink2" tabindex="6" class="contentlink" href="info-faq.aspx" target="_blank">general</a>
+												<a id="HyperLink2" tabindex="6" class="contentlink" href="https://www.permanenttsb.ie/aboutus/needhelp/allaboutonlinebanking/" target="_blank">general</a>
 											<li>
-												<a id="HyperLink1" tabindex="7" href="info-tech.aspx" target="_blank">technical</a>
+												<a id="HyperLink1" tabindex="7" href="https://www.permanenttsb.ie/aboutus/needhelp/allaboutonlinebanking/technical-questions/" target="_blank">technical</a>
 											<li>
-												<a id="Hyperlink5" tabindex="8" href="Info-Security.aspx" target="_blank">security</a></li>
+												<a id="Hyperlink5" tabindex="8" href="https://www.permanenttsb.ie/aboutus/needhelp/security/" target="_blank">security</a></li>
 										</ul>
 										<p>Still having problems?</p>
 										<p>Call us on <strong>1890 500 121</strong> Monday-Friday 8am-10pm or Saturday 

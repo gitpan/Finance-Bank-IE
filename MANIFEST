@@ -36,11 +36,11 @@ data/PTSB/Login2.aspx					 Permanent TSB PIN entry page
 data/PTSB/Incorrect1.aspx				 Permanent TSB missing credentials page
 data/PTSB/StateMini.aspx?ref=0			 Permanent TSB mini statement page
 data/PTSB/login.aspx?ref5				 Permanent TSB login page
-data/PTSB/TransferOther.aspx			 Permanent TSB 3rd party transfer
-data/PTSB/TransferOtherSelect.aspx		 Permanent TSB 3p selection
-data/PTSB/TPTcreate.aspx				 Permanent TSB 3p creation
-data/PTSB/TPTcreateconfirm.aspx			 Permanent TSB 3p confirmation
-data/PTSB/TPTCreateConfirmed.aspx		 Permanent TSB confirmed 3p creation
+data/PTSB/PayAndTransfer.aspx
+data/PTSB/TransfereeManage.aspx
+data/PTSB/TransfereeManage.aspx?ddlPaymentType=1
+data/PTSB/TransfereeManage.aspx?ddlPaymentType=2
+data/PTSB/TransfereeManage.aspx?ddlPaymentType=3
 
 data/MBNA/index.html							   MBNA home page
 data/MBNA/WelcomeScreen?country=uk&language=en&org=1 MBNA login p1
@@ -49,19 +49,19 @@ data/MBNA/RegisteredAccountsScreen?login=true	   MBNA successful login
 data/MBNA/AccountSnapshotScreen?acctID=PMMQNI	   MBNA account 1 detail
 data/MBNA/AccountSnapshotScreen?acctID=YTNCZD	   MBNA account 2 detail
 
-data/BankOfIreland/login.htm			 BoI login step 1
-data/BankOfIreland/login2.htm			 BoI login step 2 (PIN)
-data/BankOfIreland/validate.htm			 BoI login interstitial
-data/BankOfIreland/timeout.htm			 BoI session timeout
-data/BankOfIreland/365OnlineTimeout.htm	 BoI timeout frameset
-data/BankOfIreland/invalid_creds.htm	 BoI incorrect login details
-data/BankOfIreland/onlinebanking.htm	 BoI main frameset
-data/BankOfIreland/accsum.htm			 BoI account summary
-data/BankOfIreland/ft_getchal.htm		 BoI funds transfer PIN entry
-data/BankOfIreland/ft_getresp.htm		 BoI funds transfer success
-data/BankOfIreland/activate_benf.htm	 BoI activate beneficiary
-data/BankOfIreland/selacc.htm?row=001	 BoI account selection frameset
-data/BankOfIreland/txlist.htm?row=001	 BoI account detail
-data/BankOfIreland/unscrubbed			 BoI unscrubbed page
-data/BankOfIreland/navbar.htm?status=3&row=001 BoI left-side menu
-data/BankOfIreland/ft_acclist.htm?row1=001&ft_emuwarn=no&error= BoI list beneficiaries
+# Bank of Ireland test files
+data/BankOfIreland/accountSummary?execution=e2s1   BoI account summary page
+data/BankOfIreland/authentication?execution=e1s1   BoI Login 1
+data/BankOfIreland/authentication?execution=e1s2   BoI Login 2
+data/BankOfIreland/authentication?execution=e1s3   BoI login failed
+data/BankOfIreland/manageAccounts?execution=e5s1   BoI manage accounts
+data/BankOfIreland/managePayees?execution=e6s1     BoI mange payees
+data/BankOfIreland/statements?execution=e1s1       BoI account statement
+data/BankOfIreland/moneyTransfer?execution=e7s1    BoI Funds Transfer 1
+data/BankOfIreland/moneyTransfer?execution=e7s2    BoI Funds Transfer 2
+data/BankOfIreland/moneyTransfer?execution=e7s3    BoI Funds Transfer 3
+data/BankOfIreland/moneyTransfer?execution=e7s4    BoI Funds Transfer 4
+data/BankOfIreland/moneyTransfer?execution=e7s5    BoI Funds Transfer 5
+data/BankOfIreland/unscrubbed                      BoI unscrubbed
+data/BankOfIreland/sessionExpired                  BoI Timeout
+META.json                                Module JSON meta-data (added by MakeMaker)

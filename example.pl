@@ -6,7 +6,7 @@ use lib qw( ./lib );
 use strict;
 use warnings;
 
-use Finance::Bank::IE::BankOfIreland;
+use Finance::Bank::IE;
 use POSIX;
 use Getopt::Long;
 

@@ -3,10 +3,11 @@ use strict;
 use warnings;
 
 use Test::MockModule;
-use Test::More tests => 21;
+use Test::More tests => 31;
 
 use File::Basename;
 use Cwd;
+use Errno;
 
 my $www_mechanize_mock;
 
@@ -23,7 +24,8 @@ my $agent;
 ok( $agent = Finance::Bank::IE->_agent(), "can create an agent" );
 Finance::Bank::IE->reset();
 my $agent2 = Finance::Bank::IE->_agent();
-# this is a little flaky
+# this is a little flaky; it should be something like "agent doesn't
+# share *any* state with agent2"
 ok( $agent != $agent2, "reset works" ) or diag "$agent, $agent2";
 
 # if we can't create a new WWW::Mechanize object, fail
@@ -59,7 +61,7 @@ Finance::Bank::IE->_dprintf( "hello world\n" );
 ok( !$stderr, "_dprintf suppressed if DEBUG is unset" );
 $ENV{DEBUG} = 1;
 Finance::Bank::IE->_dprintf( "hello world\n" );
-ok( $stderr eq "hello world\n", "_dprintf prints if DEBUG is set" ) or diag $stderr;
+ok( $stderr eq "[Finance::Bank::IE] hello world\n", "_dprintf prints if DEBUG is set" ) or diag $stderr;
 
 # reset everything
 if ( defined( $olddebug )) {
@@ -87,9 +89,13 @@ my $bogussuffix = "doesnotexist";
 my $saved1 = "data/savedpages/IE/" . basename( $0 );
 my $saved2 = "data/savedpages/IE/404-" . basename( $0 ) . $bogussuffix;
 my $saved3 = "data/savedpages/IE/index.html";
+my $saved4 = "data/savedpages/IE/index.html?q=1";
+my $saved5 = "data/savedpages/IE/index.html?q=1&w=2";
 unlink( $saved1 );
 unlink( $saved2 );
 unlink( $saved3 );
+unlink( $saved4 );
+unlink( $saved5 );
 $agent->get( $file );
 Finance::Bank::IE->_save_page();
 $agent->get( $file . $bogussuffix );
@@ -109,15 +115,20 @@ $agent->response()->request->uri( 'http://www.example.com/' );
 Finance::Bank::IE->_save_page();
 ok( -e $saved3, "_save_page (on, index.html)" );
 
+Finance::Bank::IE->_save_page( "q=1" );
+ok( -e $saved4, "_save_page (on, index.html, param q=1)" );
+
+Finance::Bank::IE->_save_page( "q=1", "w=2" );
+ok( -e $saved5, "_save_page (on, index.html, params q=1, w=2)" );
+
 # unsaveable file. Need to capture stderr.
 chmod( 0400, $saved3 );
 $savestderr = fileno( STDERR );
 open $olderr, '>&', \*STDERR or die $!;
 close( STDERR );
 open STDERR, '>', \$stderr;
-Finance::Bank::IE->_save_page();
-ok( $stderr =~ m@^Failed to create $saved3: Permission denied@,
-    "unwritable file" );
+my $error = Finance::Bank::IE->_save_page();
+ok( $error == Errno::EACCES, "unwritable file $saved3" );
 close( STDERR );
 open STDERR, '>&', $olderr or die $!;
 
@@ -125,4 +136,30 @@ if ( defined( $oldsave )) {
     $ENV{SAVEPAGES} = $oldsave;
 } else {
     delete $ENV{SAVEPAGES};
+}
+
+# _streq
+ok( !Finance::Bank::IE->_streq( "a", undef ), "compare string & undef" );
+ok( !Finance::Bank::IE->_streq( undef, "a" ), "compare undef & string" );
+ok( Finance::Bank::IE->_streq( "a", "a" ), "compare same string" );
+ok( !Finance::Bank::IE->_streq( "a", "b" ), "compare unequal strings" );
+
+# _rebuild_tag
+my @tagtests = (
+    [ [ "E", "tr", "</tr>" ], "</tr>" ],
+    [ [ "S", "tr", {}, [], "<tr>" ], "<tr>" ],
+    [ [ "S", "a", { href => "foo" }, [ "href" ], "<a href=\"foo\">" ],
+      "<a href=\"foo\">" ],
+    [ [ "S", "a", {}, [ "href" ], "<a href=\"foo\">" ], "<a>" ],
+    );
+for my $tagtest ( @tagtests ) {
+    is( Finance::Bank::IE->_rebuild_tag( $tagtest->[0] ), $tagtest->[1], "rebuild " . $tagtest->[1] );
+}
+
+END {
+    unlink( $saved1 );
+    unlink( $saved2 );
+    unlink( $saved3 );
+    unlink( $saved4 );
+    unlink( $saved5 );
 }

@@ -76,7 +76,46 @@ use constant {
                   BENSTATUS => 'Status Information: Status',
               };
 
-my $BASEURL = "https://www1.365online.com/";
+my $BASEURL = "https://www.365online.com/";
+
+my %pages = (
+             login => {
+                       url => 'https://www.365online.com/online365/spring/authentication?execution=e1s1',
+                       sentinel => 'Secure Login - Step 1 of 2',
+                      },
+             login2 => {
+                       url => 'https://www.365online.com/online365/spring/authentication?execution=e1s2',
+                       sentinel => 'Secure Login - Step 2 of 2',
+                      },
+             badcreds => {
+                          url => 'https://www.365online.com/online365/spring/authentication?execution=e1s3',
+                          sentinel => 'Your login details are incorrect, please try again',
+                         },
+             expired => {
+                         url => 'https://www.365online.com/online365/spring/sessionExpired',
+                         sentinel => 'The system has logged you out',
+                        },
+             accounts => {
+                          url => 'https://www.365online.com/online365/spring/accountSummary?execution=e2s1',
+                          sentinel => 'Your Accounts</h2>',
+                         },
+             statements => {
+                            url => 'https://www.365online.com/online365/spring/statements?execution=e1s1',
+                            sentinel => 'Recent Transactions</h2>',
+                           },
+             moneyTransfer => {
+                               url => 'https://www.365online.com/online365/spring/moneyTransfer?execution=e7s1',
+                               sentinel => 'Money Transfer</h1>',
+                              },
+             manageaccounts => {
+                                url => 'https://www.365online.com/online365/spring/manageAccounts?execution=e5s1',
+                                sentinel => 'Manage Your Accounts</title>',
+                               },
+             managepayees => {
+                              url => 'https://www.365online.com/online365/spring/managePayees?execution=e6s1',
+                              sentinel => 'Manage Payees</title>',
+                             },
+            );
 
 use HTML::TokeParser;
 use Carp;
@@ -85,6 +124,9 @@ use POSIX;
 use File::Path;
 use Data::Dumper;
 
+sub _pages {
+    return %pages;
+}
 
 =item login_dance( $config );
 
@@ -122,49 +164,17 @@ sub login_dance {
     $self->cached_config( $confref );
 
     my $res =
-      $self->_agent()->get( $BASEURL . 'servlet/Dispatcher/onlinebanking.htm' );
-    $self->_save_page();
-    if ( $res->is_success ) {
-        if ( $self->_agent()->content !~ /timeout.htm/si ) {
-            $self->_dprintf( "Short-circuit: session still valid\n" );
-            return 1;
-        }
-    }
-    $self->_dprintf( "Session has timed out, redoing login\n" );
-
-    # fetch ye login pageibus
-    $res = $self->_agent()->get( $BASEURL . 'servlet/Dispatcher/login.htm' );
+      $self->_agent()->get( $pages{login}->{url} );
     $self->_save_page();
 
     if ( !$res->is_success ) {
         croak( "Failed to get login page." );
     }
 
-    # helpfully, BoI removed the form name, so we're going to rely on
-    # it being the only form on the page for now.
-    $self->_agent()->field( "USER", $confref->{user} );
+    # TODO check sentinel & form name
     my $form = $self->_agent()->current_form();
-    my $field = $form->find_input( "Pass_Val_1" );
-    if ( !defined( $field )) {
-        croak( "unrecognised secret type" );
-    }
-
-    if ( $self->_agent()->content =~ /your date of birth/is ) {
-        $self->_agent()->field( "Pass_Val_1", $confref->{dob} );
-    } else {
-        $self->_agent()->field( "Pass_Val_1", $confref->{contact} );
-    }
-
-    $res = $self->_agent()->submit_form( button => 'submit', 'x' => 139, 'y' => 16 );
-    $self->_save_page();
-
-    if ( !$res->is_success ) {
-        croak( "Failed to submit login form" );
-    } else {
-        $self->_dprintf( $res->request->as_string );
-    }
-
-    $self->_set_pin_fields( $confref );
+    $self->_agent()->field( "form:userId", $confref->{user} );
+    $self->_set_creds_fields( $confref );
     $res = $self->_agent()->submit_form();
     $self->_save_page();
 
@@ -172,51 +182,21 @@ sub login_dance {
         croak( "Failed to submit login form" );
     }
 
-    my $page = $res->content;
-
-    # We need to check for the phishing page, because otherwise we're
-    # not going to get any further info. Let's follow the Ha_Det link
-    # first.
-    #
-    # There's also a T&C page which I'm not going to cater for
-    # specifically because it's a T&C page. You want it, you read it.
-    my ( $loc ) = $page =~ /Ha_Det.*location.href="\/?(.*?)"/s;
-    if ( $loc ) {
-        $self->_dprintf( "being redirected to $loc...\n" );
-        $res = $self->_agent()->get( $loc =~ /^http/ ? $loc : $BASEURL . $loc );
-        $self->_save_page();
-        if ( !$res->is_success ) {
-            croak( "Failed to get Ha_Det page: $loc" );
-        }
-    } else {
-        if ( $page =~ /details are incorrect/si ) {
-            croak( "Your login details are incorrect!" );
-        }
-        croak( "Login failed: we didn't get the Ha_Det page" );
-    }
-
-    # Now check if it pulls in the phishing page.
-    $self->_dprintf( "phishing page check: " );
-    if ( $self->_agent()->find_link( url_regex => qr/phishing_notification/ )) {
-        $self->_dprintf( "found\n" );
-        $res =
-          $self->_agent()->follow_link( url_regex => qr/phishing_notification/ );
-        $self->_save_page();
-
-        if ( !$res->is_success ) {
-            croak( "Failed to get phishing page" );
-        }
-        # The page has a single form on it which we must submit
-        $res = $self->_agent()->submit_form();
-        if ( !$res->is_success ) {
-            $self->_save_page();
-            croak( "Failed to submit phishing page" );
-        }
-    } else {
-        $self->_dprintf( "none\n" );
-    }
-
+    $self->_set_creds_fields( $confref );
+    $res = $self->_agent()->submit_form();
     $self->_save_page();
+
+    if ( !$res->is_success ) {
+        croak( "Failed to submit login form" );
+    }
+
+    if ( $res->content() =~ /$pages{badcreds}->{sentinel}/s ) {
+        croak "Your login details are incorrect";
+    } elsif ( $res->content() =~ /$pages{login}->{sentinel}/s ) {
+        croak( "Looping, bailing out to avoid lockout\n" );
+    }
+
+    # one other fail string: You did not enter the 3 requested digits of your PIN!
 
     return 1;
 }
@@ -234,66 +214,40 @@ sub check_balance {
     $confref ||= $self->cached_config();
     $self->login_dance( $confref );
 
-    # Banking frameset:
-    # main frame - onlinebanking.html
-    #     - subframes marbar3_pb.htm, bank.htm
-    #     - bank.htm subframes navbar.htm?status=0 / accsum.htm
-    $self->_dprintf( "Getting balance page\n" );
-    my $res =
-      $self->_agent()->get( $BASEURL . 'servlet/Dispatcher/accsum.htm' );
-    $self->_save_page();
-
-    if ( !$res->is_success ) {
+    if ( $self->_agent()->content() !~ /$pages{accounts}->{sentinel}/s ) {
         croak( "Failed to get account summary page" );
     }
 
-    my $summary = $res->content;
+    my $summary = $self->_agent()->content;
     my $parser = new HTML::TokeParser( \$summary );
 
     my ( @accounts, %account, @headings );
     my ( $getheadings, $col ) = ( 1, 0 );
 
-    while ( my $tag = $parser->get_tag( "div" )) {
-        last if ($tag->[1]{class}||"") eq "account_tables";
-    }
-    while ( my $tag = $parser->get_tag( "td", "th",  "/tr" )) {
-        if ( $tag->[0] eq "/tr" ) {
-            if ( $getheadings ) {
-                carp( "Did not find expected headings" ) unless
-                  grep BALANCE, @headings and
-                    grep ACCTTYPE, @headings and
-                      grep NICKNAME, @headings and
-                        grep CURRENCY, @headings and
-                          grep ACCTNUM, @headings;
+    while ( my $tag = $parser->get_tag( "span" )) {
+        if ( $self->_streq( $tag->[1]{class}, "acc_name" )) {
+            # ugh. <span foo />accountname
+            while ( my $token = $parser->get_token()) {
+                if ( $token->[0] eq 'T' ) {
+                    ( $account{+NICKNAME} = $token->[1] ) =~ s/\s+$//;
+                    last;
+                }
             }
-            $getheadings = 0;
-            $col = 0;
+            $account{+ACCTNUM} = $parser->get_trimmed_text( "/span");
+        } elsif ( $self->_streq( $tag->[1]{class}, "acc_value" )) {
+            $account{+CURRENCY} = $parser->get_trimmed_text( "/span" );
+            $parser->get_tag( "span" );
+            $account{+BALANCE} = $parser->get_trimmed_text;
 
-            if ( %account and $account{+ACCTTYPE} ne ACCTTYPE ) {
-                $account{+BALANCE} = undef if
-                  $account{+BALANCE} eq "Unavailable";
-                push @accounts,
-                  bless {
-                         type => delete $account{+ACCTTYPE},
-                         nick => delete $account{+NICKNAME},
-                         account_no => delete $account{+ACCTNUM},
-                         currency => delete $account{+CURRENCY},
-                         balance => delete $account{+BALANCE},
-                        }, "Finance::Bank::IE::BankOfIreland::Account";
-            }
-            next;
+            push @accounts,
+              bless {
+                     type => delete $account{+ACCTTYPE},
+                     nick => delete $account{+NICKNAME},
+                     account_no => delete $account{+ACCTNUM},
+                     currency => delete $account{+CURRENCY},
+                     balance => delete $account{+BALANCE},
+                    }, "Finance::Bank::IE::BankOfIreland::Account";
         }
-
-        my $text = $parser->get_trimmed_text( "/" . $tag->[0] );
-        $text =~ s/\xa0//;      # nbsp, I guess
-
-        if ( $getheadings ) {
-            push @headings, $text;
-            next;
-        }
-
-        $account{$headings[$col]} = $text if $headings[$col];
-        $col++;
     }
 
     if ( !@accounts ) {
@@ -312,147 +266,94 @@ sub account_details {
     my $self = shift;
     my $account = shift;
     my $confref = shift;
+    my ( @headings, @details );
 
     $confref ||= $self->cached_config();
     $self->login_dance( $confref );
 
-    # Banking frameset:
-    # main frame - onlinebanking.html
-    #     - subframes marbar3_pb.htm, bank.htm
-    #     - bank.htm subframes navbar.htm?status=0 / accsum.htm
     my $res =
-      $self->_agent()->get( $BASEURL . 'servlet/Dispatcher/accsum.htm' );
+      $self->_agent()->get( $pages{statements}->{url} );
     $self->_save_page();
 
     if ( !$res->is_success ) {
         croak( "Failed to get account summary page" );
     }
 
-    if ( my $l = $self->_agent()->find_link( text => $account )) {
-        $self->_agent()->follow_link( text => $account )
-          or croak( "Couldn't follow link to account number $account" );
-        $self->_save_page();
-    } else {
-        croak "Couldn't find a link for $account";
-    }
+    # account selector
+    my $error = 'account not found';
+    my $content = $self->_agent->content();
+    my $parser = new HTML::TokeParser( \$content );
 
-    # the returned file is a frameset
-    my $detail = $self->_agent()->content;
-
-    if ( $detail =~ /txlist.htm/s ) {
-        $self->_agent()->follow_link( url_regex => qr/txlist.htm/ ) or
-          croak( "couldn't follow link to transactions" );
-        $self->_save_page();
-    } else {
-        croak( "frameset not found" );
-    }
-
-    # now fetch as many pages as it's willing to give us
-    my @activity;
-    my @header;
-    my $page = 1;
-    while ( 1 ) {
-        $detail = $self->_agent()->content;
-
-        my ( $hdr, $act ) = $self->_parse_details( \$detail );
-        if ( !$act or !$hdr or !@{$act} or !@{$hdr}) {
-            last;
-        }
-
-        push @activity, @{$act};
-        if ( !@header ) {
-            @header = @$hdr;
-        }
-
-        if ( $detail =~ /cont_but_next/i ) {
-            $self->_agent()->follow_link( url_regex => qr/txlist.htm/ )
-              or croak( "next link failed" );
-            $self->_save_page();
-        } else {
-            unshift @activity, \@header;
-            last;
-        }
-    }
-
-    return @activity;
-}
-
-=item * $self->_parse_details( $content );
-
- Parse the transaction listing page (C<content>) into an array ref
-
-=cut
-sub _parse_details {
-    my $self = shift;
-    my $content = shift;
-    my $parser = new HTML::TokeParser( $content );
-
-    my ( @lines, %line, @headings );
-    my ( $getheadings, $col ) = ( 1, 0 );
-
-    while ( my $tag = $parser->get_tag( "td", "th", "/tr" )) {
-        if ( $tag->[0] eq "/tr" ) {
-            if ( $getheadings ) {
-                # sanity check
-                carp( "Did not find expected headings" ) unless
-                  grep DETAIL, @headings and
-                    grep DATE, @headings and
-                      grep CREDIT, @headings and
-                        grep DEBIT, @headings and
-                          grep DETBAL, @headings;
-            }
-            $getheadings = 0;
-            $col = 0;
-
-            if ( $line{+DETAIL}||"" ) {
-                # fixups
-                $line{+DATE} ||= $lines[-1]->[0] if @lines;
-                $line{+DATE} ||= ""; # triggers failure
-                $line{+DEBIT} ||= "0.00";
-                $line{+CREDIT} ||= "0.00";
-                $line{+DETBAL} ||= ( @lines ? $lines[-1]->[-1] : 0 ) -
-                  $line{+CREDIT} + $line{+DEBIT};
-
-                # now convert the date to unix time
-                my ( $d, $m, $y ) = $line{+DATE} =~ /(\d+).(\w+).(\d+)/;
-                my $t = str2time( "$d/$m/$y" ) if defined( $d ) and
-                  defined( $m ) and defined( $y );
-                if ( defined( $t )) {
-                    $line{+DATE} = strftime( "%d-%b-%Y", localtime( $t ));
-                } else {
-                    carp( "Date format changed to " . $line{+DATE} );
+    while ( my $tag = $parser->get_tag( "select" )) {
+        if ( $self->_streq( "form:selectAccountDropDown", $tag->[1]{id})) {
+            while ( my $optiontag = $parser->get_tag("/select", "option")) {
+                last if $optiontag->[0] eq '/select';
+                my $accountname = $parser->get_trimmed_text( "/option" );
+                next if $accountname =~ /Select Account/;
+                my ( $nick, $number ) = split( /\s*~\s*/, $accountname );
+                if ( $account eq $nick or $account eq $number or
+                    $account eq '~'.$number ) {
+                    if ( $self->_streq( $optiontag->[1]{selected}, "selected" )) {
+                        $error = 'ok';
+                    } else {
+                        $error = 'account not selected';
+                    }
+                    last;
                 }
-                push @lines,
-                  [
-                   delete $line{+DATE},
-                   delete $line{+DETAIL},
-                   delete $line{+DEBIT},
-                   delete $line{+CREDIT},
-                   delete $line{+DETBAL},
-                  ];
-            } else {
-                # XXX should do something useful here to verify that this
-                # really is a blank line
             }
-            next;
+            last;
         }
-
-        my $text = $parser->get_trimmed_text( "/" . $tag->[0] );
-        $text =~ s/\xa0/ /g;
-
-        if ( $getheadings ) {
-            push @headings, $text;
-            next;
-        }
-
-        $line{$headings[$col]} = $text if $headings[$col];
-        $col++;
     }
 
-    # clean up headings
-    @headings = grep !/^\s*$/, @headings;
+    if ( $error ne 'ok' ) {
+        croak( "Account '$account': " . $error );
+    }
 
-    return \@headings, \@lines;
+    # now pull out the stuff we were looking for
+    while ( my $tag = $parser->get_tag( "table" )) {
+        if ( $self->_streq( "form:transactionDataTable" ), $tag->[1]{id}) {
+            while ( my $row = $parser->get_tag( "/table", "tr" )) {
+                last if $row->[0] eq '/table';
+                my @row;
+                while ( my $col = $parser->get_tag( "/tr", "th", "td" )) {
+                    last if $col->[0] eq '/tr';
+                    push @row, $parser->get_trimmed_text( "/" . $col->[0] );
+                }
+                if ( !@headings ) {
+                    # Date, Details, Debit, Credit, Balance
+                    @headings = @row;
+                } else {
+                    # fixups of raw data:
+                    my ( $date, $details, $dr, $cr, $balance ) = @row;
+                    if ( !$date ) {
+                        if ( @details ) {
+                            $date = $details[-1]->[0];
+                        } else {
+                            $date = 0; # can't be helped
+                        }
+                    } else {
+                        my $t = str2time( $date );
+                        if ( $t ) {
+                            $date = $t;
+                        } else {
+                            croak( "can't parse $date" );
+                        }
+                    }
+
+                    $dr ||= 0.0;
+                    $cr ||= 0.0;
+
+                    # this is for working in reverse order, hence the opposed senses of dr & cr
+                    #$bal ||= ( @details ? @details[-1]->[-1] : 0 ) - $cr + $dr;
+                    $balance ||= ( @details ? $details[-1]->[-1] : 0 ) - $dr + $cr;
+                    push @details, [ $date, $details, $dr, $cr, $balance ];
+                }
+            }
+            last;
+        }
+    }
+
+    return \@headings, @details;
 }
 
 =item * $self->list_beneficiaries( account )
@@ -465,6 +366,8 @@ sub list_beneficiaries {
     my $account_from = shift;
     my $confref = shift;
 
+    $self->_dprintf( "Fetching beneficiaries for %s\n", ref $account_from ? $account_from->{nick} : $account_from );
+
     $confref ||= $self->cached_config();
     $self->login_dance( $confref );
 
@@ -474,27 +377,64 @@ sub list_beneficiaries {
     }
 
     my $res =
-      $self->_agent()->get( $BASEURL . 'servlet/Dispatcher/accsum.htm' );
+      $self->_agent()->get( $pages{manageaccounts}->{url} );
     $self->_save_page();
     if ( !$res->is_success ) {
-        croak( "Failed to get account summary page" );
+        croak( "Failed to get " . $pages{manageaccounts}->{url} );
     }
 
-    $self->_agent()->follow_link( text => $account_from )
-      or croak( "Couldn't follow link to account $account_from" );
+    # now we have to pretend to be javascript again.
+    $self->_agent()->field( "form:managePayees", "form:managePayees" );
+    $res = $self->_agent()->submit_form();
     $self->_save_page();
 
-    $self->_agent()->follow_link( url_regex => qr/^navbar.htm/ )
-      or croak( "Couldn't load navbar" );
-    $self->_save_page();
+    if ( !$res->is_success ) {
+        croak( "Failed to submit manageAccounts form" );
+    }
 
-    $self->_agent()->follow_link( text => "Money Transfer" )
-      or croak( "Couldn't load money transfer" );
-    $self->_save_page();
+    # it would be nice to have more payees to test this with
+    my $content = $self->_agent()->content;
+    my $parser = new HTML::TokeParser( \$content );
+    my @beneficiaries;
+    while ( my $tag = $parser->get_tag( "table" )) {
+        next unless $tag->[1]{id};
+        next unless $tag->[1]{id} =~ /payee/i;
+        my %beneficiary;
+        my @cols = qw( desc account_no nsc ref currency nick limit );
+        while ( $tag = $parser->get_tag( "td", "/tr", "/table" )) {
+            if ( $tag->[0] eq "/table" ) {
+                last;
+            }
+            if ( $tag->[0] eq "/tr" and %beneficiary ) {
+                # I don't currently know what an inactive beneficiary
+                # looks like, so I'm flagging them all as Active.
+                push @beneficiaries, bless {
+                                            type => 'Beneficiary',
+                                            status => 'Active',
+                                           }, "Finance::Bank::IE::BankOfIreland::Account";
+                for my $k ( keys %beneficiary ) {
+                    $beneficiaries[-1]->{$k} = $beneficiary{$k};
+                }
 
-    my $beneficiaries = $self->_parse_beneficiaries( $self->_agent()->content );
+                %beneficiary = ();
+            } else {
+                while ( my $token = $parser->get_token()) {
+                    if ( $token->[0] eq "E" and $token->[1] eq "td" ) {
+                        last;
+                    } elsif ( $token->[0] eq "S" and $token->[1] eq "label" ) {
+                        $beneficiary{$cols[0]} = $parser->get_trimmed_text( "/label" );
+                    } elsif ( $token->[0] eq "T" ) {
+                        my $idx = scalar( keys %beneficiary ) - 1;
+                        $beneficiary{$cols[$idx]} = $token->[1];
+                    } elsif ( $token->[0] eq "S" and $token->[1] eq 'input' ) {
+                        $beneficiary{input} = [ @{$token} ];
+                    }
+                }
+            }
+        }
+    }
 
-    $beneficiaries;
+    \@beneficiaries;
 }
 
 =item * $self->funds_transfer( from, to, amount [,config] )
@@ -510,8 +450,13 @@ sub funds_transfer {
     my $amount = shift;
     my $confref = shift;
 
+    $self->_dprintf( "Funds transfer of %s from %s to %s\n", $amount,
+                     ref $account_from ? $account_from->{nick} : $account_from,
+                     ref $account_to ? $account_to->{nick} : $account_to );
+
     $confref ||= $self->cached_config();
-    $self->login_dance( $confref );
+    # don't bother, list_beneficiaries will do this
+    #$self->login_dance( $confref );
 
     # allow passing in of account objects
     if ( ref $account_from eq "Finance::Bank::IE::BankOfIreland::Account" ) {
@@ -522,7 +467,7 @@ sub funds_transfer {
         $account_to = $account_to->{nick};
     }
 
-    my $beneficiaries = list_beneficiaries( $self, $account_from, $confref );
+    my $beneficiaries = $self->list_beneficiaries( $account_from, $confref );
 
     my $acct;
     for my $bene ( @{$beneficiaries} ) {
@@ -542,245 +487,126 @@ sub funds_transfer {
         croak( "Inactive beneficiary" );
     }
 
-    $self->_agent()->submit_form(
-                        fields => {
-                                   rd_pay_cancel => $acct->{input},
-                                   txt_pay_amount => $amount,
-                                  },
-                       ) or croak( "Form submit failed" );
+    # now get the funds transfer page
+    my $res = $self->_agent()->get( $pages{moneyTransfer}->{url} );
     $self->_save_page();
-
-    $self->_set_pin_fields( $confref );
-    $self->_agent()->submit_form() or
-      croak( "Payment confirm failed" );
-    $self->_save_page();
-
-    if ( $self->_agent()->content !~ /your request.*is confirmed/si ) {
-        croak( "Payment failed" );
+    if ( !$res->is_success ) {
+        croak( "Failed to get funds transfer page." );
     }
 
+    # fiddly bit. there are different types of transfer, and I don't
+    # have test accounts to support all of them.
+    # billPayment, ownAccountPayment, domesticPayment, internationalPayment
+    # So, testing the bit I can test.
+    $self->_agent()->field( "form:domesticPayment", "form:domesticPayment" );
+    $res = $self->_agent()->submit_form();
+    $self->_save_page();
+    croak( 'not on Origin page' ) unless $self->_agent()->content() =~ m@Domestic Transfer</h1>@;
+
+    # select the origin account:
+    # select > option > id='form:dt_select_acc_from'
+    # defaults to the right account for me...
+
+    # click on the continue button
+    $res = $self->_agent()->submit_form( button => 'form:formActions:continue' );
+    $self->_save_page();
+    croak( 'not on Details page' ) unless $self->_agent()->content() =~ m@Enter Details</h2>@;
+
+    # on this page, there's a single_line_div containing the account name/no
+    # then another one containing the available funds
+    # format is <div class="single_line_div"><span class="show_label long_label">label</span><span class="pad_txt"></span>data</span</div>
+    my $account_selector = '';
+    my $content = $self->_agent()->content();
+    my $parser = new HTML::TokeParser( \$content );
+    my @valid_accounts;
+    while ( my $selector = $parser->get_tag( "select" )) {
+        if ( $self->_streq( $selector->[1]{id}, 'form:selectPayeeDomestic')) {
+            while ( my $option = $parser->get_tag( "option", "/select" )) {
+                last if $option->[0] eq '/select';
+                my $accountname = $parser->get_trimmed_text( "/option" );
+                next if $accountname =~ /Select Payee/;
+                push @valid_accounts, $accountname;
+
+                my ( $nick, $number ) = split( /\s*~\s*/, $accountname );
+                if ( $account_to eq $nick or $account_to eq $number or
+                     substr( $account_to, -4 ) eq $number ) {
+                    $account_selector = $option->[1]{value};
+                    last;
+                }
+            }
+            last;
+        }
+    }
+
+    if ( $account_selector eq '' ) {
+        croak( sprintf( "Couldn't find payee '%s', valid accounts are '%s'", $account_to, join( "', '", @valid_accounts )));
+    }
+
+    $res = $self->_agent()->submit_form(
+                                        fields => {
+                                                   'form:selectPayeeDomestic' => $account_selector,
+                                                   'form:amount' => $amount,
+                                                  },
+                                        button => 'form:formActions:continue',
+                                       );
+    # also, the destination account number appears in full on this page.
+    $self->_save_page();
+    croak( 'not on PIN page' ) unless $self->_agent()->content() =~ m@Enter your PIN</h2>@;
+
+    $self->_set_creds_fields( $confref );
+
+    $res = $self->_agent()->submit_form( button => 'form:formActions:continue' );
+    $self->_save_page();
+    croak( 'not on Confirmation page' ) unless $self->_agent()->content() =~ m@Confirmation</h2>@s;
+
     # return the 'receipt'
+    # extraction:
+    # <h2 class="section_title">Confirmation</h2>
+    # <p><span class="highlight"><strong>eur AMOUNT
+    # </strong></span>
+    # has been paid from <span class="highlight"><strong>SOURCE</strong></span> to
+    # <span class="highlight"><strong>DEST</strong></span>
+    # </p>
     return $self->_agent()->content;
 }
 
-=item * $self->activate_beneficiary( $acct, $bene, $code )
 
-Activate the specified beneficiary using the provided activation code.
+=item * $self->_set_creds_fields( $config )
 
-=cut
-
-sub activate_beneficiary {
-    my ( $self, $account_from, $account_to, $code, $confref ) = @_;
-
-    $confref ||= $self->cached_config();
-
-    # allow passing in of account objects
-    if ( ref $account_from eq "Finance::Bank::IE::BankOfIreland::Account" ) {
-        $account_from = $account_from->{nick};
-    }
-
-    # deref account_to as well
-    if ( ref $account_to eq "Finance::Bank::IE::BankOfIreland::Account" ) {
-        $account_to = $account_to->{nick};
-    }
-
-    my $beneficiaries = list_beneficiaries( $self, $account_from, $confref );
-
-    my $acct;
-    for my $bene ( @{$beneficiaries} ) {
-        if ((( $bene->{account_no} ||'' ) eq $account_to ) or
-            (( $bene->{nick} ||'' ) eq $account_to )) {
-            croak "Ambiguous destination account $account_to"
-              if $acct;
-            $acct = $bene;
-        }
-    }
-
-    if ( !defined( $acct )) {
-        croak( "Unable to find $account_to in list of accounts" );
-    }
-
-    if ( $acct->{status} ne "Inactive" ) {
-        croak( "Active beneficiary" );
-    }
-
-    # need to select the beneficiary, then click "Activate Beneficiary"
-    # this produces a warning due to an unnamed button, so we'll fix that
-    my $form = $self->_agent()->current_form();
-    for my $input ( $form->inputs()) {
-        if ( !defined( $input->{name} )) {
-            $input->{name} = 'noname';
-        }
-    }
-    $self->_agent()->submit_form(
-                        fields => {
-                                   rd_pay_cancel => $acct->{input},
-                                  },
-                        button => 'activatebenf',
-                       );
-    $self->_save_page();
-
-    $self->_agent()->submit_form(
-                        fields => {
-                                   txtActivationCode => $code,
-                                  }
-                       );
-    $self->_save_page();
-
-    if ( $self->_agent()->content !~ /you have successfully activated the following beneficary/si ) {
-        return 1;
-    }
-
-    return 0;
-}
-
-=item * $self->parse_beneficiaries( content ) 
-
-  Parse the beneficiaries page (C<content>). Returns a bunch of accounts.
+  Parse the last received page for credentials entry fields, and populate them with the data from C<$config>. Also injects the missing 'form:continue' hidden field.
 
 =cut
-sub _parse_beneficiaries {
-    my $self = shift;
-    my $content = shift;
-
-    my $parser = new HTML::TokeParser( \$content );
-
-    my ( @lines, %line, @headings );
-    my ( $getheadings, $col, $tag ) = ( 1, 0 );
-
-    while ( $tag = $parser->get_tag( "table" )) {
-        last if ( $tag->[1]{summary}||"" ) =~
-          /details of your registered/i;
-    }
-    if (( $tag->[1]{summary}||"" ) !~ /details of your registered/i ) {
-        croak( "can't find accounts table #2" );
-    }
-
-    while ( my $tag = $parser->get_tag( "td", "th", "/tr", "/table" )) {
-        last if $tag->[0] eq "/table";
-        if ( $tag->[0] eq "/tr" ) {
-            if ( $getheadings ) {
-                for my $heading ( +BENNAME, +BENACCT, +BENNSC, +BENREF,
-                                  +BENDESC, +BENSTATUS ) {
-                    my $h = quotemeta( $heading );
-                    croak( "missing heading $heading" ) unless
-                      grep /^$h$/, @headings;
-                }
-            }
-            $getheadings = 0;
-            $col = 0;
-
-            push @lines,
-              [
-               delete $line{+BENNAME},
-               delete $line{+BENACCT},
-               delete $line{+BENNSC},
-               delete $line{+BENREF},
-               delete $line{+BENDESC},
-               delete $line{+BENSTATUS},
-              ];
-            next;
-        }
-
-        my $text = $parser->get_trimmed_text( "/" . $tag->[0] );
-        $text =~ s/\xa0/ /g;
-
-        if ( $getheadings ) {
-            push @headings, $text;
-            next;
-        }
-
-        $line{$headings[$col]} = $text if $headings[$col];
-        $col++;
-    }
-
-    # reset the parser and pull the inputs
-    $parser = new HTML::TokeParser( \$content );
-
-    while ( $tag = $parser->get_tag( "table" )) {
-        last if ( $tag->[1]{summary}||"" ) =~
-          /details of your registered/i;
-    }
-
-    my $line = 0;
-    my $input;
-    while ( my $tag = $parser->get_tag( "/tr", "input" )) {
-        if ( $tag->[0] eq "/tr" ) {
-            push @{$lines[$line]}, $input->[1]->{value}
-              unless ($input->[1]->{value}||"")
-                =~ /(activate|delete) a beneficiary/i;
-            $input = undef;
-            $line++;
-        } else {
-            $input = $tag;
-        }
-    }
-
-    # now clean up the whole mess.
-    my @benes;
-    for my $bene ( @lines ) {
-        # no input -> not valid. but this is sort of bogus, so check
-        # for the obviously bad one, too.
-        next unless
-          defined( $bene->[-1] ) and $bene->[-1] !~ /^(pay_future|)$/;
-
-        push @benes,
-          bless {
-                 type => 'Beneficiary',
-                 nick => $bene->[0],
-                 account_no => $bene->[1],
-                 nsc => $bene->[2],
-                 ref => $bene->[3],
-                 desc => $bene->[4],
-                 status => $bene->[5],
-                 input => $bene->[6],
-                }, "Finance::Bank::IE::BankOfIreland::Account";
-    }
-
-    \@benes;
-}
-
-=item * $self->_set_pin_fields( $config )
-
-  Parse the last received page for PIN entry fields, and populate them with the PIN digits from C<$config>.
-
-=cut
-sub _set_pin_fields {
+sub _set_creds_fields {
     my $self = shift;
     my $confref = shift;
 
-    my $page = $self->_agent()->content;
-
-    if ( $page !~ /PIN_Val_1/s ) {
-        if ( $page =~ /Session Timeout/ ) {
-            $self->_dprintf( "Apparently your session timed out\n" );
-        }
-        croak( "PIN entry failed: we didn't get the PIN page" );
-    }
-
-    # now for the PIN - we could probably stuff this into a function
-    my ( @pin ) =
-      $page =~ /please (select|enter) the\s*(\d)\w+, (\d)\w+ and (\d)\w+ digits/si;
-
-    if ( @pin ) {
-        shift @pin; # because the first one will be the select/enter match
-    }
-
-    if ( $#pin != 2 ) {
-        croak( "can't figure out what PIN digits are required" );
-    }
-
     my $form = $self->_agent()->current_form();
-    for my $pd ( 1..3 ) {
-        my $idx = $pin[$pd - 1];
-        my $field = $form->find_input( "PIN_Val_" . $pd );
-        if ( !defined( $field )) {
-            croak( "failed to find PIN_Val_$pd" );
-        }
-        $field->readonly( 0 );
-        $self->_agent()->field( "PIN_Val_" . $pd,
-                                substr( $confref->{pin}, $idx - 1 , 1 ));
+    # avoid having to restructure old config
+    my @dob = split( '/', $confref->{dob} );
+    my %fieldmapping = (
+                        'form:dateOfBirth_year' => $dob[2],
+                        'form:dateOfBirth_month' => $dob[1],
+                        'form:dateOfBirth_date' => $dob[0],
+                        'form:phoneNumber' => $confref->{contact},
+                       );
+    for my $i ( 1..6 ) {
+        $fieldmapping{"form:security_number_digit$i"} = substr( $confref->{pin}, $i - 1, 1 );
+        $fieldmapping{"form:pinFragment:security_number_digit$i"} = substr( $confref->{pin}, $i - 1, 1 );
     }
+
+    for my $id ( keys %fieldmapping ) {
+        my $field = $form->find_input( $id );
+        if ( $field ) {
+            $self->_agent()->field( $id, $fieldmapping{$id});
+        }
+    }
+
+    # LOSERS.
+    my $input = new HTML::Form::Input( type => 'hidden',
+                                       name => 'form:continue',
+                                       value => 'form:continue',
+                                     );
+    $input->add_to_form( $form );
 }
 
 =item * $scrubbed = $self->_scrub_page( $content )
@@ -791,9 +617,150 @@ sub _set_pin_fields {
 sub _scrub_page {
     my ( $self, $content ) = @_;
 
-    # fairly generic - really need to have something better here!
-    $content =~ s/####[0-9]{4}/####9999/g;
-    return $content;
+    my $output = "";
+
+    my $parser = new HTML::TokeParser( \$content );
+
+    my $payee_acct = 0;
+    my $page;
+    while ( my $token = $parser->get_token()) {
+        my $token_string = $token->[0] eq 'T' ? $token->[1] : $token->[-1];
+
+        if ( $token->[0] eq 'T') {
+            $token_string =~ s@(Last Login.*?)\d+/\d+/\d+ \d+:\d+@${1}01/01/1970 00:00@;
+            $token_string =~ s@(Last Payee Added.*?)\d+/\d+/\d+@${1}01/01/1970@;
+        }
+
+        if ( $token->[0] eq 'S' ) {
+            if ( $token->[1] eq 'h2' ) {
+                $page = "";
+                while ( my $h2_token = $parser->get_token()) {
+                    my $h2_string = $h2_token->[0] eq 'T' ? $h2_token->[1] : $h2_token->[-1];
+                    $token_string .= $h2_string;
+                    if ( $h2_token->[0] eq 'E' and $h2_token->[1] eq 'h2' ) {
+                        last;
+                    }
+                    $page .= $h2_string;
+                }
+
+                # XXX these should use sentinels from %pages
+                if ( $page eq 'Enter your PIN' or $page eq 'Confirmation' ) {
+                    # first para contains all the PII, so just nuke it outright
+                    $parser->get_tag( "/p" );
+                } elsif ( $page eq 'Enter Details' ) {
+                    # now process until we get past the PII
+                    my @replacements = ( 'Nickname ~ 9999', 'eur 99.99' );
+                    while ( @replacements and my $innertoken = $parser->get_token()) {
+                        my $itstring = $innertoken->[0] eq 'T' ? $innertoken->[1] : $innertoken->[-1];
+                        if ( $innertoken->[0] eq 'S' and
+                             $innertoken->[1] eq 'span' and 
+                             $self->_streq( $innertoken->[2]{class},
+                                            'pad_txt' )) {
+                            my $tag = $parser->get_tag( '/span' );
+                            $itstring .= $tag->[-1];
+                            $parser->get_trimmed_text( '/div' );
+                            $itstring .= shift @replacements;
+                            $itstring .= "</div>";
+                        }
+                        $token_string .= $itstring;
+                    }
+                }
+            }
+
+            if ( $token->[1] eq 'span' ) {
+                if ( $self->_streq( $token->[2]{class}, "acc_name" )) {
+                    while ( my $account_token = $parser->get_token()) {
+                        if ( $account_token->[0] eq 'T' ) {
+                            $token_string .= "Nickname";
+                            last;
+                        } else {
+                            $token_string .= $account_token->[-1];
+                        }
+                    }
+                    $parser->get_trimmed_text( "/span");
+                    while ( my $account_token = $parser->get_token()) {
+                        if ( $account_token->[0] eq 'T' ) {
+                            if ( $account_token->[1] =~ /^(~ *)/ ) {
+                                $token_string .= $1;
+                            }
+                            $token_string .= '9999';
+                            last;
+                        } else {
+                            $token_string .= $account_token->[-1];
+                        }
+                    }
+                    $parser->get_trimmed_text( "/span" );
+                }
+            } elsif ( $self->_streq( $token->[2]{class}, "acc_value" )) {
+                # a bit more destructive than I'd like...
+                $token_string .= "<span class=\"acc_value\"><span class=\"blue\">" . $parser->get_trimmed_text( "/span" ) . "</span>";
+                $token_string .= "<span id=\"form:retailAccountSummarySubView0:balance\">";
+                $parser->get_tag( "span" );
+                $token_string .= "99999.99";
+                $parser->get_trimmed_text;
+                $token_string .= "</span>";
+            }
+
+            # manage payees
+            if ( $token->[1] eq 'td' and
+                 $token->[2]{id} and
+                 $token->[2]{id} =~ /payee/i ) {
+                if ( $token->[2]{id} =~ /id109/ ) {
+                    $token_string .= "reference $payee_acct";
+                } elsif ( $token->[2]{id} =~ /id105/ ) {
+                    $token_string .= "account_no $payee_acct";
+                } elsif ( $token->[2]{id} =~ /id113/ ) {
+                    $token_string .= "nick $payee_acct";
+                } elsif ( $token->[2]{id} =~ /id107/) {
+                    $token_string .= "nsc $payee_acct";
+                } elsif ( $token->[2]{id} =~ /id111/) {
+                    $token_string .= "currency $payee_acct";
+                } elsif ( $token->[2]{id} =~ /radiobutton/i ) {
+                    $payee_acct++;
+                    $token_string .= "<input name='input' value='$payee_acct'><label>&#160;LABEL</label>";
+                }
+                $parser->get_tag( "/td" );
+                $token_string .= "</td>";
+            }
+
+            if ( $token->[1] eq 'select' and
+                 ( $self->_streq( $token->[2]{class}, "acc_select" ) or
+                   ( $self->_streq( $token->[2]{id}, "form:selectAccountDropDown")))) {
+                my $added_nickname = 0;
+
+                while ( my $account_token = $parser->get_token()) {
+                    my $string = $account_token->[0] eq 'T' ? $account_token->[1] : $account_token->[-1];
+                    if ( $account_token->[0] eq 'S' and $account_token->[1] eq 'option' ) {
+                        my $val = $account_token->[2]{value};
+                        if ( $val ne 'From Account..' and
+                             $val ne 'defaultItem' and
+                             $val !~ /^\d+$/ ) {
+                            $account_token->[2]{value} = "0";
+                            $string = $self->_rebuild_tag( $account_token );
+                            $val = '0';
+                        }
+                        if ( $val ne 'From Account..' and
+                             $val ne 'defaultItem' ) {
+                            $added_nickname++;
+                            $string .= "nick $added_nickname ~ $val";
+                        } else {
+                            $string .= $parser->get_trimmed_text();
+                        }
+                        my $tag = $parser->get_tag( "/option" );
+                        if ( $tag ) {
+                            $string .= $tag->[-1];
+                        }
+                    }
+                    $token_string .= $string;
+                    last if ( $account_token->[0] eq 'E' and $account_token->[1] eq 'select' );
+                }
+            }
+        }
+
+        $output .= $token_string;
+    }
+
+    return $output;
 }
 
 =back

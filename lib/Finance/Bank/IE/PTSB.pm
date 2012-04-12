@@ -26,10 +26,24 @@ use HTTP::Status;
 use constant BASEURL => 'https://www.open24.ie/online/';
 
 my %pages = (
-    login => 'https://www.open24.ie/online/login.aspx',
-    login2 => 'https://www.open24.ie/online/Login2.aspx',
-    accounts => 'https://www.open24.ie/online/Account.aspx',
-    recent => 'https://www.open24.ie/online/StateMini.aspx?ref=0',
+             login => {
+                       url => 'https://www.open24.ie/online/login.aspx',
+                       sentinel => 'LOGIN STEP 1 OF 2',
+                      },
+             login2 => {
+                        url => 'https://www.open24.ie/online/Login2.aspx',
+                        sentinel => 'LOGIN STEP 2 OF 2',
+                       },
+             accounts => {
+                          url => 'https://www.open24.ie/online/Account.aspx',
+                         },
+             accountdetails => {
+                                url => 'https://www.open24.ie/online/StateMini.aspx?ref=0',
+                               },
+             payandtransfer => {
+                                url => "https://www.open24.ie/online/PayAndTransfer.aspx",
+                                sentinel => "Payments &amp; Transfers",
+                               },
     );
 
 =item * $self->_get( url, [config] )
@@ -47,11 +61,6 @@ sub _get {
         $self->cached_config( $confref );
     }
 
-    my ( $basename ) = $url =~ m{.*/([^/]+)$};
-    $basename ||= $url;
-
-    $self->_dprintf( " chasing '$url' ($basename)\n" );
-
     my $res;
     if ( $self->_agent()->find_link( url => $url )) {
         $self->_dprintf( " following $url\n" );
@@ -62,10 +71,26 @@ sub _get {
     }
 
     # if we get the login page then treat it as a 401
+    my $page;
   NEXTPAGE:
+    if ( !defined( $page )) {
+        for my $pagekey ( keys %pages ) {
+            if ( $pages{$pagekey}->{url} eq $url ) {
+                $page = $pagekey;
+                last;
+            }
+        }
+    }
+    if ( !$page ) {
+        $self->_dprintf( " chasing unknown page '$url'\n" );
+        $page = "";
+    } else {
+        $self->_dprintf( " chasing '$url' ($page)\n" );
+    }
+
     if ( $res->is_success ) {
-        if ( $res->content =~ /LOGIN STEP 1 OF 2/si ) {
-            if ( $basename eq 'Login2.aspx' ) {
+        if ( $res->content =~ /$pages{login}->{sentinel}/si ) {
+            if ( $page eq 'login2' ) {
                 $self->_dprintf( " login appears to have looped, bailing to avoid lockout\n" );
                 $res->code( RC_UNAUTHORIZED );
             } else {
@@ -82,8 +107,8 @@ sub _get {
                                                            '__EVENTARGUMENT' => '',
                                                           }
                                               );
-                # ick
-                $basename = 'Login2.aspx';
+                # loop prevention
+                $page = 'login2';
 
                 if ( $@ ) {
                     $self->_dprintf( " $@" );
@@ -94,7 +119,7 @@ sub _get {
             }
         }
 
-        if ( $res->content =~ /LOGIN STEP 2 OF 2/si ) {
+        if ( $res->content =~ /$pages{login2}->{sentinel}/si ) {
             # <td align="left"><span id="lblDigit1" class="FormStyle1">Digit No. 6</span>&nbsp;<input name="txtDigitA" type="password" maxlength="1" id="txtDigitA" tabindex="1" class="btm" size="1" onKeyup="FocusNext(1);" /></td>
             my @pins = grep /(Digit No. \d+)/, split( /[\r\n]+/, $res->content );
 
@@ -116,7 +141,8 @@ sub _get {
             $self->_add_event_fields();
             $res = $self->_agent()->submit_form( fields => \%submit );
 
-            $basename = 'Login2.aspx';
+            # loop prevention
+            $page = 'login2';
         }
 
         # I /think/ the default is to dump you at the account summary
@@ -124,8 +150,6 @@ sub _get {
         # looking for.
         if ( $res->content =~ /CLICK ACCOUNT NAME FOR A MINI STATEMENT/s ) {
             if ( $url !~ /Account.aspx$/ ) {
-                ( undef, $basename ) = $url =~ m{(.*/)?([^/]+)$};
-
                 $self->_dprintf( " now chasing $url\n" );
                 $self->_save_page();
                 $res = $self->_agent()->get( $url );
@@ -154,7 +178,7 @@ sub check_balance {
     my $confref = shift;
 
     $confref ||= $self->cached_config();
-    my $res = $self->_get( $pages{accounts}, $confref );
+    my $res = $self->_get( $pages{accounts}->{url}, $confref );
 
     return unless $res;
 
@@ -165,7 +189,7 @@ sub check_balance {
     my @accounts;
     my $parser = new HTML::TokeParser( \$res );
     while( my $tag = $parser->get_tag( "table" )) {
-        next unless ( $tag->[1]{class} || "" ) eq "statement";
+        next unless $self->_streq( $tag->[1]{class}, "statement" );
 
         my @account;
         while( $tag = $parser->get_tag( "th", "td", "/tr", "/table" )) {
@@ -228,7 +252,7 @@ sub account_details {
 
     $confref ||= $self->cached_config();
 
-    my $res = $self->_get( $pages{accounts}, $confref );
+    my $res = $self->_get( $pages{accounts}->{url}, $confref );
 
     return unless $res;
     return unless $wanted;
@@ -237,7 +261,9 @@ sub account_details {
     my @likely = grep {m{(StateMini.aspx\?ref=\d+).*?$wanted}} split( /[\r\n]/, $res );
     if ( scalar( @likely ) == 1 ) {
         my ( $url ) = $likely[0] =~ m/^.*(StateMini[^"]+)".*$/;
-        $res = $self->_get( $url, $confref );
+        # convert to an absolute URL so that the _get pagelookup works
+        my $uri = new_abs URI( $url, $self->_agent()->response()->request->uri());
+        $res = $self->_get( $uri->as_string(), $confref );
 
         # parse!
         # there's a header table which is untagged
@@ -248,7 +274,7 @@ sub account_details {
 
         my $parser = new HTML::TokeParser( \$res );
         while( my $tag = $parser->get_tag( "table" )) {
-            if (( $tag->[1]{id}||"" ) eq "tblTransactions" ) {
+            if ( $self->_streq( $tag->[1]{id}, "tblTransactions" )) {
                 $self->_dprintf( "Found transaction table\n" );
                 my @fields;
                 while( my $tag = $parser->get_tag( "td", "/tr", "/table" )) {
@@ -294,13 +320,13 @@ sub account_details {
     return @details;
 }
 
-=item * $self->_get_third_party_page( account [, config ] )
+=item * $self->_get_payments_page( account [, config ] )
 
  Get the third-party payments page for account
 
 =cut
 
-sub _get_third_party_page {
+sub _get_payments_page {
     my $self = shift;
     my $account_from = shift;
     my $confref = shift;
@@ -313,21 +339,20 @@ sub _get_third_party_page {
     }
 
     $confref ||= $self->cached_config();
-    my $res = $self->_get( $pages{accounts}, $confref );
+    my $res = $self->_get( $pages{accounts}->{url}, $confref );
 
     return unless $res;
 
-    # XXX there's multiple of these that we need to follow to get a
-    # full list of beneficiaries.
-    $self->_agent()->follow_link( text => 'To Other Accounts' )
+    $self->_get( $pages{payandtransfer}->{url} )
       or return 0;
     $self->_save_page();
 
-    if ( $self->_agent()->content() =~ /third party transfer selection/is ) {
-        return 1;
+    if ( $self->_agent()->content() !~ /Payments &amp; Transfers/is ) {
+        $self->_dprintf( "PayAndTransfer.aspx doesn't contain sentinel\n" );
+        return 0;
     }
 
-    return 0;
+    return 1;
 }
 
 =item * $self->list_beneficiaries( account )
@@ -340,35 +365,78 @@ sub list_beneficiaries {
     my $account_from = shift;
     my $confref = shift;
 
-    return unless $self->_get_third_party_page( $account_from, $confref );
+    return unless $self->_get_payments_page( $account_from, $confref );
 
-    $self->_agent()->follow_link( text => 'Existing Third Party Transfers' );
+    # follow link to 'manage accounts'
+    $self->_add_event_fields();
+    my $res = $self->_agent()->submit_form(
+                                        fields => {
+                                                   '__EVENTTARGET' => 'ctl00$cphBody$lbManageMyPayeeAccounts',
+                                                   '__EVENTARGUMENT' => '',
+                                                  }
+                                       );
+
     $self->_save_page();
 
-    my $page = $self->_agent()->content;
-    my $parser = new HTML::TokeParser( \$page );
-
     my @beneficiaries;
-    my @beneficiary;
-    while ( my $tag = $parser->get_tag( "td", "/tr" )) {
-        if ( $tag->[0] eq "/tr" ) {
-            if ( @beneficiary ) {
-                push @beneficiaries,
-                  bless {
-                         type => 'Beneficiary',
-                         nick => $beneficiary[0],
-                         ref => $beneficiary[1],
-                         input => $beneficiary[2],
-                         account_no => 'hidden',
-                         status => 'Active',
-                        }, "Finance::Bank::IE::PTSB::Account";
-                @beneficiary = ();
+
+    for my $ddlPaymentType ( 0..3 ) {
+        if ( $ddlPaymentType > 0 ) {
+            $self->_add_event_fields();
+            $res = $self->_agent()->submit_form(
+                                                fields => {
+                                                           '__EVENTTARGET' => 'ctl00$cphBody$ddlPaymentType',
+                                                           '__EVENTARGUMENT' => '',
+                                                           'ctl00$cphBody$ddlPaymentType' => $ddlPaymentType,
+                                                          }
+                                               );
+            $self->_save_page( "ddlPaymentType=$ddlPaymentType" );
+        }
+
+        my $page = $self->_agent()->content;
+        my $parser = new HTML::TokeParser( \$page );
+
+        my @beneficiary;
+        my $found = 0;
+        while ( my $tag = $parser->get_tag( "table" )) {
+            if ( $self->_streq( $tag->[1]{class}, 'transfereeList' )) {
+                $found = 1;
+                last;
             }
-        } elsif (( $tag->[1]{class}||"" ) eq "content" ) {
-            push @beneficiary, $parser->get_trimmed_text( "/td" );
-            if ( $#beneficiary == 1 ) {
-                $tag = $parser->get_tag( "input" );
-                push @beneficiary, $tag->[1]{value};
+        }
+
+        # no transferees of this type
+        if ( !$found ) {
+            $self->_dprintf( "No category $ddlPaymentType beneficiaries found\n" );
+            next;
+        }
+
+        while ( my $tag = $parser->get_tag( "td", "/tr", "/table" )) {
+            last if ( $tag->[0] eq "/table" );
+            if ( $tag->[0] eq "/tr" ) {
+                if ( @beneficiary ) {
+                    push @beneficiaries,
+                      bless {
+                             type => 'Beneficiary',
+                             nick => $beneficiary[0],
+                             lastused => $beneficiary[1],
+                             ref => $beneficiary[2],
+                             source => $beneficiary[3],
+                             input => $beneficiary[4],
+                             type => $ddlPaymentType,
+                             account_no => 'hidden',
+                             status => 'Active',
+                            }, "Finance::Bank::IE::PTSB::Account";
+                    @beneficiary = ();
+                    $self->_dprintf( "Found beneficiary " . $beneficiaries[-1]->{nick} . "\n" );
+                }
+            } else {
+                if ( $self->_streq( $tag->[1]{class}, 'transfereeListAction' )) {
+                    $tag = $parser->get_tag( "input" );
+                    push @beneficiary, $tag->[1]{id};
+                } else {
+                    push @beneficiary, $parser->get_trimmed_text( "/td" );
+                }
             }
         }
     }
@@ -388,7 +456,7 @@ sub add_beneficiary {
       @_;
 
     return unless $to_nick;
-    return unless $self->_get_third_party_page( $account_from, $confref );
+    return unless $self->_get_payments_page( $account_from, $confref );
 
     # Create a new Third Party Transfer
     $self->_agent()->follow_link( text => 'Create a new Third Party Transfer' );
@@ -429,6 +497,83 @@ sub add_beneficiary {
     return 1;
 }
 
+=item * $receipt = $self->funds_transfer( $from, $to, $amt )
+
+ Transfer C<$amt> from C<$from> to C<$to>. C<$from> has to match one
+ of your account nicknames; C<$to> has to match a configured
+ beneficiary.
+
+=cut
+
+sub funds_transfer {
+    my $self = shift;
+    my $account_from = shift;
+    my $account_to = shift;
+    my $amount = shift;
+    my $confref = shift;
+
+    # allow passing account object as destination. source is handled
+    # by list_beneficiaries.
+    if ( ref $account_to eq __PACKAGE__ . "::Account" ) {
+        $account_to = $account_to->{nick};
+    }
+
+    $self->_dprintf( " funds_transfer: listing beneficiaries\n" );
+    my $beneficiaries = $self->list_beneficiaries( $account_from, $confref );
+
+    my $found;
+    for my $beneficiary ( @{$beneficiaries}) {
+        if ( $beneficiary->{ref} eq $account_to or
+             $beneficiary->{nick} eq $account_to ) {
+            if ( $found ) {
+                $found = "ambiguous";
+                last;
+            }
+            $found = $beneficiary;
+        }
+    }
+
+    my $receipt;
+    if ( !$found ) {
+        $self->_dprintf( "no beneficiaries found for specified account" );
+    } elsif ( ref $found ne "Finance::Bank::IE::PTSB::Account" ) {
+        $self->_dprintf( "multiple matching beneficiaries found" );
+    } else {
+        if ( $found->{status} ne "Active" ) {
+            $self->_dprintf( "found an account but it's not active" );
+        } else {
+            $self->_agent()->submit_form( fields => {
+                                                     grpTransOther => $found->{input},
+                                                     txtAmount => $amount,
+                                                     '__EVENTTARGET' => 'lbtnPay',
+                                                     '__EVENTARGUMENT' => '',
+                                                    },
+                                        );
+            $self->_save_page();
+
+            $receipt = $self->_agent()->content();
+
+            if ( $receipt =~ /lbtnConfirm/s ) {
+                $self->_agent()->submit_form( fields => {
+                                                         '__EVENTTARGET' => 'lbtnConfirm',
+                                                         '__EVENTARGUMENT' => '',
+                                                        });
+                $self->_save_page();
+                $receipt = $self->_agent()->content();
+                if ( $receipt !~ /successfully processed/si ) {
+                    $self->_dprintf( "did not get transaction confirmation" );
+                    $receipt = undef;
+                }
+            } else {
+                $self->_dprintf( "did not get confirmation request page" );
+                $receipt = undef;
+            }
+        }
+    }
+
+    return $receipt;
+}
+
 =item * $scrubbed = $self->_scrub_page( $content )
 
  Scrub the supplied content for PII.
@@ -437,38 +582,139 @@ sub add_beneficiary {
 sub _scrub_page {
     my ( $self, $content ) = @_;
 
-    # TODO: convert this to using a parser with inline filtering or
-    # some such.
-
-    # state variables may retain info we'd rather not pass around
-    $content =~ s@(name="__(VIEWSTATE|EVENTVALIDATION).+?value=")[^"]+"@$1"@mg;
-
-    # no sense in telling people when the account was used
-    $content =~ s@(Your last successful logon was on) .*?</span>@$1 01 January 1970 at 00:00</span>@mg;
-
-    # no bank account details, please
-    while( $content =~ s@(<td.*StateMini.aspx[^>]+>)([^\0].*)$@$1<!-- ACCOUNT DETAILS -->@m ) {
-        my $details = $2;
-        my @cols = split( /<td/, $details );
-
-        for my $col ( 0..$#cols ) {
-            $cols[$col] =~ s@^.*</a>@\0Account Type</a>@;
-            $cols[$col] =~ s@(^.*>)[0-9]{4}</td>@${1}9999</td>@;
-            $cols[$col] =~ s@[0-9]+\.[0-9]{2}@99.99@g;
+    # This would be nicer with XPath. Alas, I tried XML::Xpath and the
+    # world ended - it wanted to fetch a DTD from the web, which
+    # didn't exist, and it took an awfully long time to figure that
+    # out.
+    my $output = "";
+    my $parser = new HTML::TokeParser( \$content );
+    while( my $token = $parser->get_token()) {
+        my $token_string = $token->[-1];
+        if ( $token->[0] eq 'T' ) {
+            $token_string = $token->[1];
+            if ( $token_string =~ /Your last successful logon/ ) {
+                $token_string = "Your last successful logon was on 01 January 1970 at 00:00";
+            }
         }
-        $details = join( '<td', @cols );
-        $content =~ s/<!-- ACCOUNT DETAILS -->/$details/;
+
+        if ( $token->[0] eq 'S' ) {
+            # ASP state
+            if ( $token->[1] eq 'input' ) {
+                if ( $self->_streq( $token->[2]{name}, "__VIEWSTATE" ) or
+                     $self->_streq( $token->[2]{name}, "__EVENTVALIDATION" ) or
+                     $self->_streq( $token->[2]{name}, "PtsbCifNumber" ) or
+                     $self->_streq( $token->[2]{name}, "PtsbBranchNumber" )
+                   ) {
+                    $token->[2]{value} = "";
+                    $token_string = $self->_rebuild_tag( $token );
+                }
+            }
+
+            if ( $token->[1] eq 'select' ) {
+                if ( $self->_streq( $token->[2]{name}, 'ctl00$cphBody$ddlDestinationAccount' ) or
+                   ( $self->_streq( $token->[2]{name}, 'ctl00$cphBody$ddlSourceAccount' ))) {
+                    while ( my $account_token = $parser->get_token()) {
+                        my $string = $account_token->[0] eq 'T' ? $account_token->[1] : $account_token->[-1];
+                        if ( $account_token->[0] eq 'S' and $account_token->[1] eq 'option' ) {
+                            my $val = $account_token->[2]{value};
+                            if ( $val ne 'Please select' and $val !~ /^\d+$/ ) {
+                                $account_token->[2]{value} = "0";
+                                $string = $self->_rebuild_tag( $account_token );
+                                $val = '0';
+                            }
+                            if ( $val ne 'Please select' ) {
+                                $string .= "Account Type $val - 9999";
+                            } else {
+                                $string .= $parser->get_trimmed_text();
+                            }
+                            my $tag = $parser->get_tag( "/option" );
+                            $string .= $tag->[-1];
+
+                        }
+                        $token_string .= $string;
+                        last if ( $account_token->[0] eq 'E' and $account_token->[1] eq 'select' );
+                    }
+                }
+            }
+
+            if ( $token->[1] eq 'table' and $self->_streq( $token->[2]{class}, "transfereeList" )) {
+                my $col = 0;
+                while ( my $account_token = $parser->get_token()) {
+                    my $string = $account_token->[0] eq 'T' ? $account_token->[1] : $account_token->[-1];
+                    if ( $account_token->[1] eq 'td' and $account_token->[0] eq 'S' ) {
+                        my $replacement = "";
+                        if ( $col == 0 ) {
+                            $replacement = "Recipient";
+                        } elsif ( $col == 1 ) {
+                            $replacement = "01/01/1970";
+                        } elsif ( $col == 2 ) {
+                            $replacement = "Reference";
+                        } elsif ( $col == 3 ) {
+                            $replacement = "Source A/C";
+                        }
+                        $string .= $replacement;
+                        $parser->get_text();
+                        $col++;
+                    }
+                    if ( $account_token->[0] eq 'E' and $account_token->[1] eq 'tr' ) {
+                        $col = 0;
+                    }
+                    $token_string .= $string;
+                    last if ( $account_token->[0] eq 'E' and $account_token->[1] eq 'table' );
+                }
+            }
+
+            if ( $token->[1] eq 'span' ) {
+                if ( $self->_streq( $token->[2]{id}, "lblTransferTo" )) {
+                    $token_string .= "Recipient";
+                    $parser->get_text();
+                } elsif ( $self->_streq( $token->[2]{id}, "lblTranRef" )) {
+                    $token_string .= "Reference";
+                    $parser->get_text();
+                } elsif ( $self->_streq( $token->[2]{id}, "lblFrAcc" )) {
+                    $token_string .= "Source A/C";
+                    $parser->get_text();
+                } elsif ( $self->_streq( $token->[2]{id}, "lblAmount" )) {
+                    $token_string .= "9999";
+                    $parser->get_text();
+                }
+            }
+
+            # should possibly do this within table class="statement"
+            if ( $token->[1] eq 'a' and
+                 defined( $token->[2]{href}) and
+                 $token->[2]{href} =~ /^StateMini.aspx/ ) {
+
+                # winging it a little here.
+                my @replacements = ( "Account Type",
+                                     9999, # account number
+                                     99999.99, # balance
+                                     99999.99, # balance
+                                   );
+
+                while ( my $account_token = $parser->get_token()) {
+                    my $string = $account_token->[0] eq 'T' ? $account_token->[1] : $account_token->[-1];
+                    if ( $account_token->[0] eq 'E' and $account_token->[1] eq 'tr' ) {
+                        $token_string .= $string;
+                        last;
+                    }
+                    if ( $account_token->[0] eq 'T' and $string !~ /^\s+$/ ) {
+                        $string = shift @replacements;
+                    }
+                    if ( $account_token->[0] eq 'S' and
+                         defined( $account_token->[2]{title} )) {
+                        $account_token->[2]{title} = "";
+                        $string = $self->_rebuild_tag( $account_token );
+                    }
+                    $token_string .= $string;
+                }
+            }
+        }
+
+        $output .= $token_string;
     }
 
-    # clean up the mini statement page
-    $content =~ s@lblTitle">Mini.*</span>@lblTitle">Mini Statement - Account Type - 9999</span>@;
-    $content =~ s@[0-9]{2}/[0-9]{2}/[0-9]{4}@01/01/1970@mg;
-    $content =~ s@[0-9]+\.[0-9]{2}@99.99@mg;
-    # and finally
-    1 while ( $content =~ s@(01/01/1970</td><td[^>]+>)[^<\0]+(.*)$@$ {1}\0COMMENT$ {2}@mg );
-    $content =~ s/\0//gs;
-
-    $content;
+    return $output;
 }
 
 sub _add_event_fields {

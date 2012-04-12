@@ -14,9 +14,14 @@ my %pages = (
              login2 => '/online/Login2.aspx',
              incorrect => '/online/Incorrect1.aspx',
              loggedin => '/online/Account.aspx',
+             payments => '/online/PayAndTransfer.aspx',
+             managepay => '/online/TransfereeManage.aspx',
              add3p => '/online/TPTcreate.aspx',
              add3p2 => '/online/TPTcreateconfirm.aspx',
              add3pok => '/online/TPTCreateConfirmed.aspx',
+             fundstransfer => '/online/TransferOther.aspx',
+             fundstransferconfirm => '/online/TransferOtherConfirm.aspx',
+             fundstransferconfirmed => '/online/TransferOtherConfirmed.aspx',
             );
 
 sub request {
@@ -101,6 +106,28 @@ sub request {
                 #}
                 $response->code( RC_FOUND );
                 $response->header( 'Location' => $pages{add3pok} );
+            } elsif ( $request->url =~ $pages{fundstransfer} and
+                      $submitted eq 'lbtnPay' ) {
+                # fixme: check inputs
+                $response->code( RC_FOUND );
+                $response->header( 'Location' => $pages{fundstransferconfirm});
+            } elsif ( $request->url =~ $pages{fundstransferconfirm} and
+                      $submitted eq 'lbtnConfirm' ) {
+                # again, more inputs to check
+                $response->code( RC_FOUND );
+                $response->header( 'Location' => $pages{fundstransferconfirmed});
+            } elsif ( $request->url =~ $pages{payments} and
+                      $submitted eq 'ctl00$cphBody$lbManageMyPayeeAccounts' ) {
+                $response->code( RC_FOUND );
+                $response->header( 'Location' => $pages{managepay} );
+            } elsif ( $request->url =~ $pages{managepay} ) {
+                my $ddlPaymentType = $self->get_param( 'ctl00%24cphBody%24ddlPaymentType', \@args );
+                if ( $ddlPaymentType ) {
+                    $response->code( RC_FOUND );
+                    $response->header('Location' => $pages{managepay} . "?ddlPaymentType=$ddlPaymentType" );
+                } else {
+                    $response = $self->SUPER::request( $response, 'PTSB' );
+                }
             } else {
                 $response = $self->SUPER::request( $response, 'PTSB' );
             }

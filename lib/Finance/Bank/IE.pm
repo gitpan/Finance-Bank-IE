@@ -53,8 +53,10 @@ sub _agent {
     if ( !$agent{$self} ) {
         $agent{$self} = WWW::Mechanize->new( env_proxy => 1,
                                              autocheck => 0,
-                                             keep_alive => 10 )
-          or confess( "can't create agent" );
+                                             keep_alive => 10 );
+        if ( !$agent{$self}) {
+            confess( "can't create agent" );
+        }
         $agent{$self}->quiet( 0 );
     }
 
@@ -116,6 +118,7 @@ sub _scrub_page {
 
 sub _save_page {
     my $self = shift;
+    my @params = @_;
     return unless $ENV{SAVEPAGES};
 
     # get a filename from the agent
@@ -131,6 +134,10 @@ sub _save_page {
         $filename = $res->code() . "-$filename";
     }
 
+    if ( @params ) {
+        $filename .= '?' . join( '&', @params );
+    }
+
     my $path = 'data/savedpages/' . $self->_get_class();
     mkpath( [ $path ], 0, 0700 );
     $filename = "$path/$filename";
@@ -142,13 +149,60 @@ sub _save_page {
 
     $content = $self->_scrub_page( $content );
 
+    my $error = 0;
     if ( open( my $FILEHANDLE, ">", $filename )) {
         binmode $FILEHANDLE, ':utf8';
         print $FILEHANDLE $content;
         close( $FILEHANDLE );
     } else {
+        $error = $!;
         warn "Failed to create $filename: $!";
     }
+
+    return $error;
+}
+
+=item * $self->_streq( $a, $b )
+
+ Return $a eq $b; if either is undef, substitutes an empty string.
+
+=cut
+
+sub _streq {
+    my ( $self, $a, $b ) = @_;
+
+    $a = "" if !defined( $a );
+    $b = "" if !defined( $b );
+
+    return $a eq $b;
+}
+
+=item * $self->_rebuild_tag( $html_tokeparser_decomposed_tag )
+
+ Return C<html_tokeparser_decomposed_tag> as a composed HTML tag.
+
+=cut
+
+sub _rebuild_tag {
+    my $self = shift;
+    my $data = shift;
+    my $tag = $data->[1];
+    if ( $data->[0] eq 'E' ) {
+        $tag = "/$tag";
+    }
+    my $attr_values = $data->[2];
+    my $attr_order = $data->[3];
+    my @rebuild = "<$tag";
+    for my $attr ( @{$attr_order} ) {
+        next unless exists($attr_values->{$attr});
+        my $attrstring = "$attr=";
+        my $attrvalue = $attr_values->{$attr};
+        $attrvalue =~ s@\\@\\\\@g;
+        $attrvalue =~ s@"@\\"@g;
+        $attrstring .= "\"$attrvalue\"";
+        push @rebuild, $attrstring;
+    }
+    return join( ' ', @rebuild ) . ">";
 }
 
 =item * $self->_dprintf( ... )
@@ -160,7 +214,11 @@ sub _save_page {
 sub _dprintf {
     my $self = shift;
     binmode( STDERR, ':utf8' );
-    print STDERR @_ if $ENV{DEBUG};
+
+    if ( $ENV{DEBUG}) {
+        printf STDERR "[%s] ", ref( $self ) || $self || "DEBUG";
+        printf STDERR @_ if $ENV{DEBUG};
+    }
 }
 
 =back
