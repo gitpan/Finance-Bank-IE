@@ -42,9 +42,10 @@ Note that all functions are set up to act as methods (i.e. they all need to be i
 use strict;
 use warnings;
 
-our $VERSION = "0.24";
+our $VERSION = "0.27";
 
 use base qw( Finance::Bank::IE );
+use POSIX;
 
 # headers for account summary page
 use constant {
@@ -88,13 +89,17 @@ my %pages = (
                        sentinel => 'Secure Login - Step 2 of 2',
                       },
              badcreds => {
-                          url => 'https://www.365online.com/online365/spring/authentication?execution=e1s3',
+                          url => 'https://www.365online.com/online365/spring/authentication?execution=e1s4',
                           sentinel => 'Your login details are incorrect, please try again',
                          },
              expired => {
                          url => 'https://www.365online.com/online365/spring/sessionExpired',
                          sentinel => 'The system has logged you out',
                         },
+             appadvert => {
+                          url => 'https://www.365online.com/online365/spring/accountSummary?execution=e1s3',
+                          sentinel => 'Mobile Banking App',
+                          },
              accounts => {
                           url => 'https://www.365online.com/online365/spring/accountSummary?execution=e2s1',
                           sentinel => 'Your Accounts</h2>',
@@ -197,6 +202,13 @@ sub login_dance {
     }
 
     # one other fail string: You did not enter the 3 requested digits of your PIN!
+
+    # GAH INTERSTITIALS
+    if ( $self->_agent()->content() =~ /$pages{appadvert}->{sentinel}/s ) {
+        $self->_agent()->field( "form:continue", "form:continue" );
+        $res = $self->_agent()->submit_form();
+        $self->_save_page();
+    }
 
     return 1;
 }
@@ -332,19 +344,14 @@ sub account_details {
                             $date = 0; # can't be helped
                         }
                     } else {
-                        my $t = str2time( $date );
-                        if ( $t ) {
-                            $date = $t;
-                        } else {
-                            croak( "can't parse $date" );
-                        }
+                        my ( $d, $m, $y ) = split( "/", $date );
+                        # strftime ilk
+                        $date = strftime( "%s", 0, 0, 0, $d, $m - 1, $y - 1900, );
                     }
 
                     $dr ||= 0.0;
                     $cr ||= 0.0;
 
-                    # this is for working in reverse order, hence the opposed senses of dr & cr
-                    #$bal ||= ( @details ? @details[-1]->[-1] : 0 ) - $cr + $dr;
                     $balance ||= ( @details ? $details[-1]->[-1] : 0 ) - $dr + $cr;
                     push @details, [ $date, $details, $dr, $cr, $balance ];
                 }

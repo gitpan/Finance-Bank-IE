@@ -15,7 +15,7 @@ package Finance::Bank::IE::MBNA;
 use strict;
 use warnings;
 
-our $VERSION = "0.24";
+our $VERSION = "0.27";
 
 use base qw( Finance::Bank::IE );
 

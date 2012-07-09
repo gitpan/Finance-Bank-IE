@@ -3,7 +3,7 @@ use strict;
 use warnings;
 
 use Test::MockModule;
-use Test::More tests => 31;
+use Test::More tests => 32;
 
 use File::Basename;
 use Cwd;
@@ -155,6 +155,22 @@ my @tagtests = (
 for my $tagtest ( @tagtests ) {
     is( Finance::Bank::IE->_rebuild_tag( $tagtest->[0] ), $tagtest->[1], "rebuild " . $tagtest->[1] );
 }
+
+# as_qif
+my @details = (
+    { date => "1970-01-01", payee => "Foo", amount => 1 },
+    { date => "1970-01-02", payee => "Bar", amount => 2 },
+    );
+is( Finance::Bank::IE->as_qif( \@details ), "!Type:Bank
+D1970-01-01
+PFoo
+T1.00
+^
+D1970-01-02
+PBar
+T2.00
+^
+");
 
 END {
     unlink( $saved1 );

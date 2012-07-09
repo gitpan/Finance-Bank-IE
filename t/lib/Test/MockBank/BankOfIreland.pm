@@ -109,12 +109,10 @@ sub request {
                     # need to capture pages for this
                     die "not enough digits ($digits_submitted)";
                 } else {
-                    print STDERR "# Successful login, redirecting to accounts page\n";
                     $response->code( RC_FOUND );
                     $response->header( 'Location' => $pages{accounts}->{url});
                 }
             } else {
-                print STDERR "# Landed in default handler\n";
                 $response = $self->SUPER::request( $response, 'BankOfIreland' );
             }
         } elsif ( $request->uri eq $pages{manageaccounts}->{url} and

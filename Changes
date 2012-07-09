@@ -1,3 +1,10 @@
+0.27
+    * Date::Parse on OpenBSD apparently doesn't parse 01/01/1970.  
+      Removed the str2time call completely as it was overkill.
+    * BoI advertising their app on the login page screws up the login.
+    * Rudimentary render-as-QIF support
+    * Bumped all $VERSIONs to match release
+
 0.26
     Fix MBNA account-in-credit detection (returns negative balance)
     Fix MBNA due-date reparsing when due date is blank

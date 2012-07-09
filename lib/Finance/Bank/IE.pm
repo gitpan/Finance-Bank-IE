@@ -19,6 +19,8 @@ use Carp qw( confess );
 use strict;
 use warnings;
 
+our $VERSION = "0.27";
+
 # Class state. Each of these is keyed by the hash value of $self to
 # provide individual class-level variables. Ideally I'd just hack the
 # namespace of the subclass, though.
@@ -219,6 +221,35 @@ sub _dprintf {
         printf STDERR "[%s] ", ref( $self ) || $self || "DEBUG";
         printf STDERR @_ if $ENV{DEBUG};
     }
+}
+
+=item * $self->_as_qif( $account_details_array_ref[, $type ] )
+
+ Render C<$account_details_array_ref> as QIF. I<Very>
+ limited. Optional C<$type> is the type of account.
+
+ C<$account_details_array_ref> should be an arrayref of hashrefs, each
+ containing the date, the payee, and the amount. Negative amounts
+ indicate debits.
+
+=cut
+
+sub as_qif {
+    my $self = shift;
+    my $details_aref = shift;
+    my $type = shift || "Bank";
+
+    my $qif = "!Type:Bank\n";
+
+    for my $details ( @{$details_aref} ) {
+        $qif .= sprintf("D%s
+P%s
+T%0.02f
+^
+", $details->{date}, $details->{payee}, $details->{amount});
+    }
+
+    return $qif;
 }
 
 =back
