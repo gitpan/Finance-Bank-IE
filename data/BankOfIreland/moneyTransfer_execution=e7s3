@@ -114,7 +114,7 @@
                                             <div class="single_line_div">                                           
                                                 <label for="form:selectPayeeDomestic" class="show_label long_label">Pay To</label>
                                                 <span class="abbrstyle"><abbr title="Mandatory">*</abbr></span><select id="form:selectPayeeDomestic" name="form:selectPayeeDomestic" class="acc_select" size="1" onchange="document.getElementById('form:ajaxRequestStatus').value = 'AJAX REQUEST PROCESSOR ACTIVE';A4J.AJAX.Submit('form',event,{'control':this,'oncomplete':function(request,event,data){document.getElementById('form:ajaxRequestStatus').value = 'AJAX REQUEST PROCESSOR INACTIVE'},'similarityGroupingId':'form:j_id70','parameters':{'ajaxSingle':'form:selectPayeeDomestic','form:j_id70':'form:j_id70'} } )" tabindex="1" title="Please select a Payee">	<option value="defaultItem" selected="selected" disabled="disabled">Select Payee..</option>
-	<option value="751992">nick 1 ~ 751992</option>
+	<option value="751992">Nickname ~ 751992</option>
 	<option value="6080248">nick 2 ~ 6080248</option>
 	<option value="7056559">nick 3 ~ 7056559</option>
 	<option value="2384247">nick 4 ~ 2384247</option>

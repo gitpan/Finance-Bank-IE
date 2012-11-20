@@ -2,7 +2,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 26;
+use Test::More tests => 15;
 
 use Test::MockModule;
 
@@ -41,67 +41,6 @@ if ( !$config ) {
 
 Test::MockBank->globalstate( 'config', $config );
 
-# login_dance()
-ok( Finance::Bank::IE::BankOfIreland->login_dance( $config ),
-    "log in to BoI" );
-
-ok( Finance::Bank::IE::BankOfIreland->reset, "can reset object" ) and
-  Test::MockBank->globalstate( 'loggedin', 0 );
-
-Finance::Bank::IE::BankOfIreland->cached_config( $config );
-Test::MockBank->globalstate( 'loggedin', 0 );
-ok( Finance::Bank::IE::BankOfIreland->login_dance(),
-    "cached config (login_dance)" );
-
-Finance::Bank::IE::BankOfIreland->reset and
-  Test::MockBank->globalstate( 'loggedin', 0 );
-for my $key qw( user pin contact dob ) {
-    my $value = $config->{$key};
-    delete $config->{$key};
-    ok( !Finance::Bank::IE::BankOfIreland->login_dance( $config ),
-        "don't log in if missing config key $key" );
-    $config->{$key} = $value;
-}
-
-Finance::Bank::IE::BankOfIreland->reset and
-  Test::MockBank->globalstate( 'loggedin', 0 );
-eval {
-    Finance::Bank::IE::BankOfIreland->login_dance(
-                                                  {
-                                                   user => '012345',
-                                                   pin => '123456',
-                                                   contact => '1234',
-                                                   dob => '01/01/1970',
-                                                  }
-                                                 );
-};
-ok( $@ =~ /^Your login details are incorrect/,
-    "don't log in if credentials don't match" );
-
-Finance::Bank::IE::BankOfIreland->reset and
-  Test::MockBank->globalstate( 'loggedin', 0 );
-Test::MockBank->fail_on_iterations( 1 );
-eval {
-    Finance::Bank::IE::BankOfIreland->login_dance( $config );
-};
-ok( $@ =~ /^Failed to get login page./, "handle login page failure (1)" );
-
-Finance::Bank::IE::BankOfIreland->reset and
-  Test::MockBank->globalstate( 'loggedin', 0 );
-Test::MockBank->fail_on_iterations( 2 );
-eval {
-    Finance::Bank::IE::BankOfIreland->login_dance( $config );
-};
-ok( $@ =~ /^Failed to submit login form/, "handle login page failure (2)" ) or diag $@;
-
-Finance::Bank::IE::BankOfIreland->reset and
-  Test::MockBank->globalstate( 'loggedin', 0 );
-Test::MockBank->fail_on_iterations( 3 );
-eval {
-    Finance::Bank::IE::BankOfIreland->login_dance( $config );
-};
-ok( $@ =~ /^Failed to submit login form/, "handle login page failure (3)" ) or diag $@;
-
 # check_balance()
 Finance::Bank::IE::BankOfIreland->reset and
   Test::MockBank->globalstate( 'loggedin', 0 );
@@ -118,10 +57,9 @@ Finance::Bank::IE::BankOfIreland->reset and
   Test::MockBank->globalstate( 'loggedin', 0 );
 Test::MockBank->on_page( 'https://www.365online.com/online365/spring/accountSummary?execution=e2s1', undef );
 eval {
-    Finance::Bank::IE::BankOfIreland->check_balance( $config );
+    @accounts = Finance::Bank::IE::BankOfIreland->check_balance( $config );
 };
-ok( $@ =~ /^Failed to submit login form/,
-    "handle accounts page failure (1)" );
+ok( !@accounts, "handle accounts page failure (1)" );
 Test::MockBank->on_page();
 
 # account_details()

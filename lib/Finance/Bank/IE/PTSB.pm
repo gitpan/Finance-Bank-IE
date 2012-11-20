@@ -14,14 +14,13 @@ package Finance::Bank::IE::PTSB;
 
 use base qw( Finance::Bank::IE );
 
-our $VERSION = "0.27";
+our $VERSION = "0.28";
 
 use warnings;
 use strict;
 
 use Carp;
 use File::Path;
-use HTTP::Status;
 
 use constant BASEURL => 'https://www.open24.ie/online/';
 
@@ -36,9 +35,11 @@ my %pages = (
                        },
              accounts => {
                           url => 'https://www.open24.ie/online/Account.aspx',
+                          sentinel => 'CLICK ACCOUNT NAME FOR A MINI STATEMENT',
                          },
              accountdetails => {
                                 url => 'https://www.open24.ie/online/StateMini.aspx?ref=0',
+                                sentinel => 'MINI STATEMENT',
                                },
              payandtransfer => {
                                 url => "https://www.open24.ie/online/PayAndTransfer.aspx",
@@ -46,125 +47,43 @@ my %pages = (
                                },
     );
 
-=item * $self->_get( url, [config] )
+sub _pages {
+    return \%pages;
+}
 
- Get the specified URL, dealing with login if necessary along the way.
-
-=cut
-
-sub _get {
+sub _submit_first_login_page {
     my $self = shift;
-    my $url = shift;
+    my $confref = shift||$self->cached_config();
+
+    $self->_add_event_fields();
+
+    return
+      $self->_agent()->submit_form( fields => {
+                                               txtLogin => $confref->{user},
+                                               txtPassword => $confref->{password},
+                                               '__EVENTTARGET' => 'lbtnContinue',
+                                               '__EVENTARGUMENT' => '',
+                                              }
+                                  );
+}
+
+sub _submit_second_login_page {
+    my $self = shift;
     my $confref = shift;
 
-    if ( $confref ) {
-        $self->cached_config( $confref );
+    my @pins = grep /(Digit No. \d+)/, split( /[\r\n]+/, $self->_agent()->content );
+    my %submit;
+    my @secrets = split( //, $confref->{pin} );
+    for my $pin ( @pins ) {
+        my ( $digit, $field ) = $pin =~
+          m{Digit No. (\d+).*input name="(.*?)"};
+        my $secret = $secrets[$digit - 1];
+        $submit{$field} = $secret;
     }
-
-    my $res;
-    if ( $self->_agent()->find_link( url => $url )) {
-        $self->_dprintf( " following $url\n" );
-        $res = $self->_agent()->follow_link( url => $url );
-    } else {
-        $self->_dprintf( " getting $url\n" );
-        $res = $self->_agent()->get( $url );
-    }
-
-    # if we get the login page then treat it as a 401
-    my $page;
-  NEXTPAGE:
-    if ( !defined( $page )) {
-        for my $pagekey ( keys %pages ) {
-            if ( $pages{$pagekey}->{url} eq $url ) {
-                $page = $pagekey;
-                last;
-            }
-        }
-    }
-    if ( !$page ) {
-        $self->_dprintf( " chasing unknown page '$url'\n" );
-        $page = "";
-    } else {
-        $self->_dprintf( " chasing '$url' ($page)\n" );
-    }
-
-    if ( $res->is_success ) {
-        if ( $res->content =~ /$pages{login}->{sentinel}/si ) {
-            if ( $page eq 'login2' ) {
-                $self->_dprintf( " login appears to have looped, bailing to avoid lockout\n" );
-                $res->code( RC_UNAUTHORIZED );
-            } else {
-                # do the login
-                $self->_dprintf( " login step 1\n" );
-                $self->_save_page();
-                $self->_add_event_fields();
-                # alas, this can die
-                $res =
-                  $self->_agent()->submit_form( fields => {
-                                                           txtLogin => $confref->{user},
-                                                           txtPassword => $confref->{password},
-                                                           '__EVENTTARGET' => 'lbtnContinue',
-                                                           '__EVENTARGUMENT' => '',
-                                                          }
-                                              );
-                # loop prevention
-                $page = 'login2';
-
-                if ( $@ ) {
-                    $self->_dprintf( " $@" );
-                    return;
-                }
-
-                goto NEXTPAGE;
-            }
-        }
-
-        if ( $res->content =~ /$pages{login2}->{sentinel}/si ) {
-            # <td align="left"><span id="lblDigit1" class="FormStyle1">Digit No. 6</span>&nbsp;<input name="txtDigitA" type="password" maxlength="1" id="txtDigitA" tabindex="1" class="btm" size="1" onKeyup="FocusNext(1);" /></td>
-            my @pins = grep /(Digit No. \d+)/, split( /[\r\n]+/, $res->content );
-
-            my %submit;
-            my @secrets = split( //, $confref->{pin} );
-            for my $pin ( @pins ) {
-                my ( $digit, $field ) = $pin =~
-                    m{Digit No. (\d+).*input name="(.*?)"};
-                my $secret = $secrets[$digit - 1];
-
-                $submit{$field} = $secret;
-            }
-
-            $submit{'__EVENTTARGET'} = 'btnContinue';
-            $submit{'__EVENTARGUMENT'} = '';
-
-            $self->_dprintf( " login 2 of 2\n" );
-            $self->_save_page();
-            $self->_add_event_fields();
-            $res = $self->_agent()->submit_form( fields => \%submit );
-
-            # loop prevention
-            $page = 'login2';
-        }
-
-        # I /think/ the default is to dump you at the account summary
-        # page, in which case we redirect to the page we were actually
-        # looking for.
-        if ( $res->content =~ /CLICK ACCOUNT NAME FOR A MINI STATEMENT/s ) {
-            if ( $url !~ /Account.aspx$/ ) {
-                $self->_dprintf( " now chasing $url\n" );
-                $self->_save_page();
-                $res = $self->_agent()->get( $url );
-            }
-        }
-    }
-
-    $self->_save_page();
-
-    if ( $res->is_success ) {
-        return $self->_agent()->content();
-    } else {
-        $self->_dprintf( "  page fetch failed with " . $res->code() . "\n" );
-        return undef;
-    }
+    $submit{'__EVENTTARGET'} = 'btnContinue';
+    $submit{'__EVENTARGUMENT'} = '';
+    $self->_add_event_fields();
+    return $self->_agent()->submit_form( fields => \%submit );
 }
 
 =item * check_balance( [config] )
@@ -377,6 +296,7 @@ sub list_beneficiaries {
                                        );
 
     $self->_save_page();
+    return unless $res->is_success();
 
     my @beneficiaries;
 
@@ -391,6 +311,7 @@ sub list_beneficiaries {
                                                           }
                                                );
             $self->_save_page( "ddlPaymentType=$ddlPaymentType" );
+            return unless $res->is_success();
         }
 
         my $page = $self->_agent()->content;

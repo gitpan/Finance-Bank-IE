@@ -77,8 +77,9 @@ sub getfile {
     $file =~ s@^(.*/)*@data/$context/@;
 
     while ( 1 ) {
-        print STDERR "#  looking for $file\n" if $ENV{DEBUG};
-        if ( open( my $CONTENT, '<', $file )) {
+        ( my $fs_file = $file ) =~ s/\?/_/;
+        print STDERR "#  looking for $fs_file\n" if $ENV{DEBUG};
+        if ( open( my $CONTENT, '<', $fs_file )) {
             local $/ = undef;
             $content = <$CONTENT>;
             return $content;

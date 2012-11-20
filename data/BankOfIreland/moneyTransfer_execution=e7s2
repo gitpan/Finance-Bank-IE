@@ -33,10 +33,9 @@
             <script type="text/javascript" src="/online365/js/autoTab.js"></script>
             <script type="text/javascript" src="/online365/js/browserDetection.js"></script>
             <script type="text/javascript" src="/online365/js/loadMonitor.js"></script>
-        <meta name="keywords" content="Bank of Ireland, 365 Online , Your Accounts" />
+        <meta name="keywords" content="Bank of Ireland 365 Online | Money Transfer" />
         <meta name="description" content="Bank of Ireland 365 Online, Your Accounts" />
-        
-        <title>Bank of Ireland 365 Online | Manage Your Accounts</title>
+            <title>Bank of Ireland 365 Online | Domestic Transfer | Select Account</title>
             
             <script type="text/javascript"> <!-- REMOVE DIV ONCLICK FUNCTION -->
                 function hide_element(element_name) {
@@ -47,7 +46,7 @@
             </script>
         </head>
  
-        <body onload="pageIsLoaded();location.href = location.href + '#';" onbeforeunload="pageUnloaded()"><form id="form" name="form" method="post" action="/online365/spring/manageAccounts?execution=e5s1">
+        <body onload="pageIsLoaded();location.href = location.href + '#';" onbeforeunload="pageUnloaded()"><form id="form" name="form" method="post" action="/online365/spring/moneyTransfer?execution=e7s2">
         		<label class="hidden_label" for="form:ajaxRequestStatus">Please ignore ajax request</label><input id="form:ajaxRequestStatus" type="hidden" name="form:ajaxRequestStatus" value="AJAX REQUEST PROCESSOR INACTIVE" />
 	            <div id="container">
 					<label class="hidden_label" for="ieBug">Please ignore fix for ie bug</label><input type="text" style="display: none;" disabled="disabled" size="1" id="ieBug" />
@@ -60,9 +59,9 @@
         <div id="container">
 	        <div id="masthead">
 <script type="text/javascript" src="/online365/spring/com_sun_faces_sunjsf.js"></script>
-<a id="form:j_id7:homePage" href="#" onclick="if(typeof jsfcljs == 'function'){jsfcljs(document.getElementById('form'),{'form:j_id7:homePage':'form:j_id7:homePage'},'');}return false"><img src="/online365/images/header/bankofireland_online.gif" alt="Bank of Ireland 365 Online" /></a>
+<a id="form:j_id15:homePage" href="#" onclick="if(typeof jsfcljs == 'function'){jsfcljs(document.getElementById('form'),{'form:j_id15:homePage':'form:j_id15:homePage'},'');}return false"><img src="/online365/images/header/bankofireland_online.gif" alt="Bank of Ireland 365 Online" /></a>
 	            <p>For more information
-	            	<img src="/online365/images/extras/icon_popup.gif" alt="Contact Us opens up in a new window" /><a id="form:j_id7:contactLink" name="form:j_id7:contactLink" href="#" class="strong"> Contact Us<script type="text/javascript">Richfaces.componentControl.attachAvailable('#form\\:j_id7\\:contactLink','onclick','#form\\:j_id63\\:j_id78\\:contactPanel','show')</script></a>
+	            	<img src="/online365/images/extras/icon_popup.gif" alt="Contact Us opens up in a new window" /><a id="form:j_id15:contactLink" name="form:j_id15:contactLink" href="#" class="strong"> Contact Us<script type="text/javascript">Richfaces.componentControl.attachAvailable('#form\\:j_id15\\:contactLink','onclick','#form\\:j_id96\\:j_id111\\:contactPanel','show')</script></a>
 	            </p>
 			</div>
         </div>
@@ -72,16 +71,17 @@
 	        <ul class="nav" id="ul">
 	                <li class=""><a id="form:leftHandNavSubview:accountSummary" href="#" title="accountSummary" onclick="if(typeof jsfcljs == 'function'){jsfcljs(document.getElementById('form'),{'form:leftHandNavSubview:accountSummary':'form:leftHandNavSubview:accountSummary'},'');}return false">365 Home</a></li>
 	           	    <li class=""><a id="form:leftHandNavSubview:statements" href="#" title="statements" onclick="if(typeof jsfcljs == 'function'){jsfcljs(document.getElementById('form'),{'form:leftHandNavSubview:statements':'form:leftHandNavSubview:statements'},'');}return false">Statements</a></li>
-	            	<li class=""><a id="form:leftHandNavSubview:moneyTransfer" href="#" title="moneyTransfer" onclick="if(typeof jsfcljs == 'function'){jsfcljs(document.getElementById('form'),{'form:leftHandNavSubview:moneyTransfer':'form:leftHandNavSubview:moneyTransfer'},'');}return false">Money Transfer</a></li>
-	                <li class="left4 selected"><a id="form:leftHandNavSubview:manageAccounts" href="#" title="manageAccounts" onclick="if(typeof jsfcljs == 'function'){jsfcljs(document.getElementById('form'),{'form:leftHandNavSubview:manageAccounts':'form:leftHandNavSubview:manageAccounts'},'');}return false">Manage Accounts</a></li>	             
+	            	<li class="selected"><a id="form:leftHandNavSubview:moneyTransfer" href="#" title="moneyTransfer" onclick="if(typeof jsfcljs == 'function'){jsfcljs(document.getElementById('form'),{'form:leftHandNavSubview:moneyTransfer':'form:leftHandNavSubview:moneyTransfer'},'');}return false">Money Transfer</a></li>
+	                <li class="left4"><a id="form:leftHandNavSubview:manageAccounts" href="#" title="manageAccounts" onclick="if(typeof jsfcljs == 'function'){jsfcljs(document.getElementById('form'),{'form:leftHandNavSubview:manageAccounts':'form:leftHandNavSubview:manageAccounts'},'');}return false">Manage Accounts</a></li>	             
 	                <li class="left5"><a id="form:leftHandNavSubview:applyOnline" href="#" title="applyOnline" onclick="if(typeof jsfcljs == 'function'){jsfcljs(document.getElementById('form'),{'form:leftHandNavSubview:applyOnline':'form:leftHandNavSubview:applyOnline'},'');}return false">Apply Online</a></li>	 
 	       </ul>
 	   </div>
     
-    
     <div class="right">
-    <a name="content"></a>  
-    <h1 class="content_title">Manage Accounts</h1>
+    	<a name="content"></a>
+    	
+	    <div>
+	            <h1 class="content_title">Domestic Transfer</h1>
 
     <div class="login_details">
 	            <a id="logoutLink" href="/online365/spring/confirmLogout">Logout</a>
@@ -89,27 +89,47 @@
                 Last Login 01/01/1970 00:00
 	                |  Last Payee Added 01/01/1970
             </span>
-        </div>
+        </div> 
+	        <br class="clear" />
+	    </div>
+	    
+	    <div class="content_body">
+		    <div class="inner_content_body">
 
-    <br class="clear" />
+	<div class="acc_container">
+		<div class="acc_container_inner"><span class="mandatory_ctnt">
+			<span class="abbrstyle"><abbr title="Mandatory">*</abbr></span> = mandatory</span>
+			<h2 class="section_title">Select Account</h2>
+			<div class="">
 
-    <div class="content_body">
-        <div class="inner_content_body">
-            <div class="acc_container">
-                <div class="acc_container_inner">
-                    <ul class="tasks">
-	                        <li><h2><a id="form:addAccount" href="#" onclick="if(typeof jsfcljs == 'function'){jsfcljs(document.getElementById('form'),{'form:addAccount':'form:addAccount'},'');}return false">Add an Account<span>Add a Mortgage or a Savings &amp; Investments account to your 365 online profile</span></a></h2></li><li><h2><a id="form:registerMobile" href="#" onclick="if(typeof jsfcljs == 'function'){jsfcljs(document.getElementById('form'),{'form:registerMobile':'form:registerMobile'},'');}return false">Get Security Codes by Mobile Phone<span>Register your mobile phone to receive security codes</span></a></h2></li>
-                        <li><h2><a id="form:managePayees" href="#" onclick="if(typeof jsfcljs == 'function'){jsfcljs(document.getElementById('form'),{'form:managePayees':'form:managePayees'},'');}return false">Manage Payees<span>Add, delete, activate and transfer money to payees online</span></a></h2></li>
-                        <li><h2><a id="form:nicknameChange" href="#" onclick="if(typeof jsfcljs == 'function'){jsfcljs(document.getElementById('form'),{'form:nicknameChange':'form:nicknameChange'},'');}return false">Change Account Nickname<span>Personalise your account names so that you can recognise them easily</span></a></h2></li>                   
-                        <li><h2><a id="form:standingOrderDirectDebitLink" href="#" onclick="if(typeof jsfcljs == 'function'){jsfcljs(document.getElementById('form'),{'form:standingOrderDirectDebitLink':'form:standingOrderDirectDebitLink'},'');}return false">Manage Standing Orders and Direct Debits<span>Manage Standing Orders and Direct Debits from your accounts</span></a></h2></li>
-                    </ul>           
-                </div>                        
-            </div>  
-        </div>
-    </div>
-</div>             
+  
+	                <div class="qt_div">
+	                    <label for="form:dt_select_acc_from" class="show_label long_label">Pay From</label>
+	                    <span class="abbrstyle"> <abbr title="Mandatory">*</abbr> </span><select id="form:dt_select_acc_from" name="form:dt_select_acc_from" class="acc_select" size="1" tabindex="1" title="Please select an account">	<option value="defaultItem" disabled="disabled">Select Account..</option>
+	<option value="1" selected="selected">Nickname ~ 9999</option>
+</select>
+	                </div>
+			
+				<br class="clear" />
+			</div>
+			<br class="clear" />
+		</div>
+	</div>      
+		    	
+		    	<br class="clear" />
 
-<br class="clear" />
+    <div class="form_actions">                             
+        	<div class="form_actions_left"><a id="form:formActions:cancel" href="#" tabindex="20" title="Cancel this Process" onclick="if(typeof jsfcljs == 'function'){jsfcljs(document.getElementById('form'),{'form:formActions:cancel':'form:formActions:cancel'},'');}return false" class="stop">Cancel this Process</a>
+        	</div>                                    
+        	<div class="form_actions_right"><input id="form:formActions:continue" type="submit" name="form:formActions:continue" value="Continue" onblur="(isIE6() || isIE7()) ? this.style.border='none' :this.style.outline='none';" onfocus="(isIE6() || isIE7()) ? this.style.border='#000000 dashed 1px' : this.style.outline='#000000 dotted thin';" tabindex="19" title="Continue" class="submit_button" />                                    
+        	</div>
+	
+		<br class="clear" />
+	</div>
+
+		    </div>
+	    </div>
+	</div>
 	                
 	                </div>
 
@@ -119,7 +139,7 @@
 	<div class="hr_blue"></div>
 
 	<div id="footer">
-	<span class="server">J1
+	<span class="server">J7
 	</span>
 	<ul>
 		<li><img src="/online365/images/extras/icon_popup.gif" alt="About Us opens up in a new window" /> <a href="/online365/spring/about" target="_blank">About
@@ -135,8 +155,8 @@
 	</ul>
 	
 	</div>
-	</div><div id="form:j_id63:j_id78:contactPanel" style="display: none;"><input autocomplete="off" id="form:j_id63:j_id78:contactPanelOpenedState" name="form:j_id63:j_id78:contactPanelOpenedState" type="hidden" /><div class="rich-modalpanel sortable" id="form:j_id63:j_id78:contactPanelContainer" style="position: absolute; display: none; z-index: 100; background-color: inherit;"><div class="rich-mpnl-mask-div-opaque rich-mpnl-mask-div" id="form:j_id63:j_id78:contactPanelDiv" style="z-index: -1;"><button class="rich-mpnl-button" id="form:j_id63:j_id78:contactPanelFirstHref"></button></div><div class="rich-mpnl-panel"><div class="rich-mp-container" id="form:j_id63:j_id78:contactPanelCDiv" style="position: absolute; left: 0px; top: 0px; z-index: 9;"><div class="rich-mpnl-shadow" id="form:j_id63:j_id78:contactPanelShadowDiv"></div><div class="rich-mpnl-ovf-hd rich-mpnl-trim rich-mpnl-content" id="form:j_id63:j_id78:contactPanelContentDiv"><div class="rich-mpnl-text rich-mpnl-controls ">
-				<a href="#" id="hideContactUs" class="calc_close">Close</a><script type="text/javascript">Richfaces.componentControl.attachAvailable('#hideContactUs','onclick','#form\\:j_id63\\:j_id78\\:contactPanel','hide')</script></div><table border="0" cellpadding="0" cellspacing="0" class="rich-mp-content-table" id="form:j_id63:j_id78:contactPanelContentTable" style="height: 100%; width: 100%;"><tr style="height: 1%;"><td class="rich-mpnl-header-cell"><div class="rich-mpnl-text rich-mpnl-header " id="form:j_id63:j_id78:contactPanelHeader" style="white-space: nowrap;">
+	</div><div id="form:j_id96:j_id111:contactPanel" style="display: none;"><input autocomplete="off" id="form:j_id96:j_id111:contactPanelOpenedState" name="form:j_id96:j_id111:contactPanelOpenedState" type="hidden" /><div class="rich-modalpanel sortable" id="form:j_id96:j_id111:contactPanelContainer" style="position: absolute; display: none; z-index: 100; background-color: inherit;"><div class="rich-mpnl-mask-div-opaque rich-mpnl-mask-div" id="form:j_id96:j_id111:contactPanelDiv" style="z-index: -1;"><button class="rich-mpnl-button" id="form:j_id96:j_id111:contactPanelFirstHref"></button></div><div class="rich-mpnl-panel"><div class="rich-mp-container" id="form:j_id96:j_id111:contactPanelCDiv" style="position: absolute; left: 0px; top: 0px; z-index: 9;"><div class="rich-mpnl-shadow" id="form:j_id96:j_id111:contactPanelShadowDiv"></div><div class="rich-mpnl-ovf-hd rich-mpnl-trim rich-mpnl-content" id="form:j_id96:j_id111:contactPanelContentDiv"><div class="rich-mpnl-text rich-mpnl-controls ">
+				<a href="#" id="hideContactUs" class="calc_close">Close</a><script type="text/javascript">Richfaces.componentControl.attachAvailable('#hideContactUs','onclick','#form\\:j_id96\\:j_id111\\:contactPanel','hide')</script></div><table border="0" cellpadding="0" cellspacing="0" class="rich-mp-content-table" id="form:j_id96:j_id111:contactPanelContentTable" style="height: 100%; width: 100%;"><tr style="height: 1%;"><td class="rich-mpnl-header-cell"><div class="rich-mpnl-text rich-mpnl-header " id="form:j_id96:j_id111:contactPanelHeader" style="white-space: nowrap;">
 				<h2>Contact Us</h2></div></td></tr><tr style="height: 99%"><td class="rich-mpnl-body" valign="top">
 		
 		<div class="container">
@@ -155,7 +175,7 @@
 					<br class="clear" />
 				</div>
 			</div>    
-		</div></td></tr></table></div><div class="rich-mpnl-resizer" id="form:j_id63:j_id78:contactPanelResizerN" style="width: 40px; height: 4px;"></div><div class="rich-mpnl-resizer" id="form:j_id63:j_id78:contactPanelResizerE" style="height: 40px; width: 4px;"></div><div class="rich-mpnl-resizer" id="form:j_id63:j_id78:contactPanelResizerS" style="width: 40px; height: 4px;"></div><div class="rich-mpnl-resizer" id="form:j_id63:j_id78:contactPanelResizerW" style="height: 40px; width: 4px;"></div><div class="rich-mpnl-resizer" id="form:j_id63:j_id78:contactPanelResizerNWU" style="width: 40px; height: 4px;"></div><div class="rich-mpnl-resizer" id="form:j_id63:j_id78:contactPanelResizerNEU" style="height: 40px; width: 4px;"></div><div class="rich-mpnl-resizer" id="form:j_id63:j_id78:contactPanelResizerNEL" style="width: 40px; height: 4px;"></div><div class="rich-mpnl-resizer" id="form:j_id63:j_id78:contactPanelResizerSEU" style="height: 40px; width: 4px;"></div><div class="rich-mpnl-resizer" id="form:j_id63:j_id78:contactPanelResizerSEL" style="width: 40px; height: 4px;"></div><div class="rich-mpnl-resizer" id="form:j_id63:j_id78:contactPanelResizerSWL" style="height: 40px; width: 4px;"></div><div class="rich-mpnl-resizer" id="form:j_id63:j_id78:contactPanelResizerSWU" style="width: 40px; height: 4px;"></div><div class="rich-mpnl-resizer" id="form:j_id63:j_id78:contactPanelResizerNWL" style="height: 40px; width: 4px;"></div></div></div><div class="rich-mpnl-mask-div rich-mpnl-mask-div-transparent" id="form:j_id63:j_id78:contactPanelCursorDiv" style="z-index: -200;"><button class="rich-mpnl-button" id="form:j_id63:j_id78:contactPanelLastHref"></button></div><script type="text/javascript">new ModalPanel('form:j_id63:j_id78:contactPanel',
+		</div></td></tr></table></div><div class="rich-mpnl-resizer" id="form:j_id96:j_id111:contactPanelResizerN" style="width: 40px; height: 4px;"></div><div class="rich-mpnl-resizer" id="form:j_id96:j_id111:contactPanelResizerE" style="height: 40px; width: 4px;"></div><div class="rich-mpnl-resizer" id="form:j_id96:j_id111:contactPanelResizerS" style="width: 40px; height: 4px;"></div><div class="rich-mpnl-resizer" id="form:j_id96:j_id111:contactPanelResizerW" style="height: 40px; width: 4px;"></div><div class="rich-mpnl-resizer" id="form:j_id96:j_id111:contactPanelResizerNWU" style="width: 40px; height: 4px;"></div><div class="rich-mpnl-resizer" id="form:j_id96:j_id111:contactPanelResizerNEU" style="height: 40px; width: 4px;"></div><div class="rich-mpnl-resizer" id="form:j_id96:j_id111:contactPanelResizerNEL" style="width: 40px; height: 4px;"></div><div class="rich-mpnl-resizer" id="form:j_id96:j_id111:contactPanelResizerSEU" style="height: 40px; width: 4px;"></div><div class="rich-mpnl-resizer" id="form:j_id96:j_id111:contactPanelResizerSEL" style="width: 40px; height: 4px;"></div><div class="rich-mpnl-resizer" id="form:j_id96:j_id111:contactPanelResizerSWL" style="height: 40px; width: 4px;"></div><div class="rich-mpnl-resizer" id="form:j_id96:j_id111:contactPanelResizerSWU" style="width: 40px; height: 4px;"></div><div class="rich-mpnl-resizer" id="form:j_id96:j_id111:contactPanelResizerNWL" style="height: 40px; width: 4px;"></div></div></div><div class="rich-mpnl-mask-div rich-mpnl-mask-div-transparent" id="form:j_id96:j_id111:contactPanelCursorDiv" style="z-index: -200;"><button class="rich-mpnl-button" id="form:j_id96:j_id111:contactPanelLastHref"></button></div><script type="text/javascript">new ModalPanel('form:j_id96:j_id111:contactPanel',
 				{
 					width: 700,
 					height: 300,
@@ -182,7 +202,7 @@ _clearJSFFormParameters('form','',['form:j_idcl','form:_link_hidden_']);
 }
 function clearFormHiddenParams_form(){clear_form();}
 function clearFormHiddenParams_form(){clear_form();}
-clear_form();</script><input type="hidden" name="javax.faces.ViewState" id="javax.faces.ViewState" value="e5s1" autocomplete="off" /></form>
+clear_form();</script><input type="hidden" name="javax.faces.ViewState" id="javax.faces.ViewState" value="e7s2" autocomplete="off" /></form>
             
         </body>
 </html>

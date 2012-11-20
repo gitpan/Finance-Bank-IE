@@ -1,5 +1,6 @@
 package Test::MockBank;
 
+use Test::More;
 use warnings;
 use strict;
 
@@ -51,21 +52,27 @@ sub simple_request {
 
     $GLOBALSTATE{requestcount}++;
 
-    print STDERR "# Mock Bank request " . $GLOBALSTATE{requestcount} . " for " . $request->uri . ", login state " .
-      ( Test::MockBank->globalstate( 'loggedin' )||0) . "\n"
-      if $ENV{DEBUG};
+    my $fail = Test::MockBank->globalstate( 'fail' );
+    my ( $failures, $iteration );
+    if ( $fail ) {
+        ( $failures, $iteration ) = @{$fail};
+    }
+
+    diag( sprintf( "Mock Bank request %d for %s, iteration %s, login state %s",
+                   $GLOBALSTATE{requestcount},
+                   $request->uri,
+                   defined( $iteration ) ? $iteration : "(not counting)",
+                   ( Test::MockBank->globalstate( 'loggedin' )||0))) if $ENV{DEBUG};
 
     my $response = new HTTP::Response();
     $response->request( $request );
 
-    if ( my $fail = Test::MockBank->globalstate( 'fail' )) {
-        my ( $failures, $iteration ) = @{$fail};
+    if ( $fail ) {
         $iteration++;
         Test::MockBank->globalstate( 'fail', [ $failures, $iteration ]);
 
         if ( grep {m/^$iteration$/} @{$failures} ) {
-            print STDERR "# failing per request on iteration $iteration when " . $request->method . "ing " . $request->uri . "\n"
-              if $ENV{DEBUG};
+            diag( "failing per request on iteration $iteration when " . $request->method . "ing " . $request->uri) if $ENV{DEBUG};
             my @iterations = grep {!m/^$iteration$/} @{$failures};
             if ( !@iterations ) {
                 Test::MockBank->globalstate( 'fail', 0 );
@@ -74,6 +81,7 @@ sub simple_request {
             }
             $response->code( RC_INTERNAL_SERVER_ERROR );
             $response->content( 'FAIL' );
+            diag( "returning " . $response->code) if $ENV{DEBUG};
             return $response;
         } else {
         }
@@ -85,10 +93,10 @@ sub simple_request {
             if ( $substitute->[1] ) {
                 $request->uri( $substitute->[1] );
             } else {
-                print STDERR "# failing per request when " . $request->method . "ing " . $request->uri . "\n"
-                  if $ENV{DEBUG};
+                diag("failing per request when " . $request->method . "ing " . $request->uri) if $ENV{DEBUG};
                 $response->code( RC_INTERNAL_SERVER_ERROR );
                 $response->content( 'FAIL' );
+                diag("returning " . $response->code) if $ENV{DEBUG};
                 return $response;
             }
         }
@@ -101,7 +109,7 @@ sub simple_request {
     eval '$response = Test::MockBank::' . $context . '->request( $response, $context );';
     die "$context: $@" if $@;
 
-    print STDERR "# returning " . $response->code . "\n" if $ENV{DEBUG};
+    diag("returning " . $response->code) if $ENV{DEBUG};
 
     return $response;
 }
@@ -126,7 +134,6 @@ sub request {
 
 sub get_param {
     my ( $self, $param, $args ) = @_;
-
     my $value;
     map {
         $value = $_->[1] if $_->[0] eq $param or uri_unescape( $_->[0] ) eq $param;

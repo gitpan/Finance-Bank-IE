@@ -10,7 +10,7 @@ use HTTP::Response;
 
 use Finance::Bank::IE::BankOfIreland;
 
-my %pages = Finance::Bank::IE::BankOfIreland::_pages();
+my $pages = Finance::Bank::IE::BankOfIreland::_pages();
 
 sub request {
     my ( $self, $response ) = @_;
@@ -19,8 +19,7 @@ sub request {
 
     my @args;
     my @args_and_equals;
-    my $content;
-    ( undef, $content ) = split( /\?/, $request->uri, 2 );
+    my ( $url, $content ) = split( /\?/, $request->uri, 2 );
     $content ||= "";
     if ( $request->method eq 'POST' ) {
         $content = join( '&', $content, $request->content );
@@ -33,59 +32,72 @@ sub request {
         }
     }
 
-    if ( !Test::MockBank->globalstate( 'loggedin' )) {
-        if ( $request->uri ne $pages{login}->{url} and
-             $request->uri ne $pages{badcreds}->{url} ) {
-            $response->code( RC_FOUND );
-            $response->header( 'Location' => $pages{expired}->{url} );
-            Test::MockBank->globalstate( 'loggedin', 0 );
-        } else {
-            $response = $self->SUPER::request( $response, 'BankOfIreland' );
-            if ( $request->uri eq $pages{login}->{url} ) {
-                Test::MockBank->globalstate( 'loggedin', 1 );
-            }
-        }
-    } elsif ( Test::MockBank->globalstate( 'loggedin' ) == 1 ) {
-        # posted back to $pages{login}
-        if ( $request->uri ne $pages{login}->{url} ) {
-            $response->code( RC_FOUND );
-            $response->header( 'Location' => $pages{timeout2} );
-        } else {
-            my ( $user, $password ) =
-              (
-               $self->get_param( 'form:userId',  \@args ),
-               #               $self->get_param( 'form:phoneNumber', \@args ),
-               join( '/',
-                     $self->get_param( 'form:dateOfBirth_date', \@args ),
-                     $self->get_param( 'form:dateOfBirth_month', \@args ),
-                     $self->get_param( 'form:dateOfBirth_year', \@args )
-                   )
-              );
+    # business logic
+    # Credentials expiry - no state
+    if ( $url eq $pages->{expired}->{url} ) {
+        print STDERR "# early return: expired session\n" if $ENV{DEBUG};
+        return $self->SUPER::request($response, 'BankOfIreland' );
+    }
 
-            $response = $self->SUPER::request( $response, 'BankOfIreland' );
-            Test::MockBank->globalstate( 'user', $user );
-            Test::MockBank->globalstate( 'password', $password );
-            Test::MockBank->globalstate( 'loggedin', 2 );
-            $response->code( RC_FOUND );
-            $response->header( 'Location' => $pages{login2}->{url} );
-        }
-    } else {
-        # loggedin == 2
-        if ( $request->url eq $pages{login}->{url}) {
-            # hack to allow login_dance to loop
-            $response->code( RC_FOUND );
-            $response->header( 'Location' => $pages{accounts}->{url});
-        } elsif ( $request->uri eq $pages{login2}->{url}) {
-            # if continue was clicked, process the form, otherwise
-            # just hand back the page as-is.
+    my $execution = $self->get_param( 'execution', \@args ) || 'e0s0';
+    print STDERR "#  Looking for $url, $execution (from " . $request->uri . ")\n" if $ENV{DEBUG};
+
+    # Bad Credentials page shouldn't need any state
+    # unpleasantly, it does
+    if ( $url eq $pages->{badcreds}->{url} and $execution eq 'e1s4') {
+        print STDERR "# early return: bad creds\n" if $ENV{DEBUG};
+        return $self->SUPER::request($response, 'BankOfIreland' );
+    }
+
+    if ( $url eq $pages->{login}->{url} ) {
+        if ( $execution =~ /s[01]$/ ) {
+            if ( $execution eq 'e0s0' or
+                 ( $execution =~ /s1$/ and !$self->get_param( 'form:userId', \@args ))) {
+                $request->uri( $request->uri . "?execution=e1s1" );
+                $response = $self->SUPER::request( $response, 'BankOfIreland' );
+                Test::MockBank->globalstate( 'loggedin', 1 );
+                return $response;
+            } else {
+                if ( Test::MockBank->globalstate('loggedin') != 1 ) {
+                    print STDERR "# login state " . Test::MockBank->globalstate('loggedin') . ", expected 1\n" if $ENV{DEBUG};
+                    $response->code( RC_FOUND );
+                    $response->header( 'Location' => $pages->{expired}->{url} );
+                    Test::MockBank->globalstate( 'loggedin', 0 );
+                    return $response;
+                }
+                my $user = $self->get_param( 'form:userId', \@args );
+                my $pass = $self->get_param( 'form:phoneNumber', \@args );
+                if ( !defined($pass )) {
+                    $pass = join( '/',
+                                  $self->get_param( 'form:dateOfBirth_date', \@args ),
+                                  $self->get_param( 'form:dateOfBirth_month', \@args ),
+                                  $self->get_param( 'form:dateOfBirth_year', \@args )
+                                );
+                }
+                $response = $self->SUPER::request( $response, 'BankOfIreland' );
+                Test::MockBank->globalstate('user', $user);
+                Test::MockBank->globalstate('pass', $pass );
+                Test::MockBank->globalstate('loggedin', 2);
+                $response->code( RC_FOUND );
+                $response->header( 'Location' => $pages->{login2}->{url} .
+                                   "?execution=e1s2" );
+                return $response;
+            }
+        } elsif ( $execution =~ /s2$/ ) {
+            if ( Test::MockBank->globalstate('loggedin') != 2 ) {
+                print STDERR "# login state " . Test::MockBank->globalstate('loggedin') . ", expected 2\n" if $ENV{DEBUG};
+                $response->code( RC_FOUND );
+                $response->header( 'Location' => $pages->{expired}->{url} );
+                Test::MockBank->globalstate( 'loggedin', 0 );
+                return $response;
+            }
             if ( $self->get_param( 'form:continue', \@args )) {
                 my $digits_ok = 0;
                 my $digits_submitted = 0;
                 my $expected = Test::MockBank->globalstate( 'config' )->{pin};
 
                 for my $index ( 1..6 ) {
-                    my $digit = $self->get_param( "form:security_number_digit$index", \@args );
-                    next unless defined( $digit );
+                    my $digit = $self->get_param( 'form:security_number_digit' . $index, \@args );
                     if ( defined( $digit )) {
                         $digits_submitted++;
                         if ( substr( $expected, $index - 1, 1 ) eq $digit ) {
@@ -94,37 +106,51 @@ sub request {
                     }
                 }
 
-                if ( Test::MockBank->globalstate( 'user' ) ne
-                     Test::MockBank->globalstate( 'config' )->{user} ||
-                     Test::MockBank->globalstate( 'password') ne
-                     Test::MockBank->globalstate( 'config' )->{dob} || # or contact
+                if ( Test::MockBank->globalstate( 'user' ) ne Test::MockBank->globalstate( 'config')->{user} or
+                     ( Test::MockBank->globalstate( 'pass' ) ne Test::MockBank->globalstate( 'config')->{dob} and
+                       Test::MockBank->globalstate('pass') ne Test::MockBank->globalstate('config')->{'contact'}) or
                      $digits_ok != 3 ) {
-                    $response->code( RC_FOUND );
-                    $response->header( 'Location' => $pages{badcreds}->{url});
 
-                    # page contains a login form which doesn't seem to
-                    # work... just loop around anyway.
-                    Test::MockBank->globalstate( 'loggedin', 0 );
+                    print STDERR "# bad login details, returning badcreds page\n" if $ENV{DEBUG};
+                    $response->code( RC_FOUND );
+                    $response->header( 'Location' => $pages->{badcreds}->{url} . "?execution=e1s4" );
+
+                    Test::MockBank->globalstate('loggedin', 0);
+                    return $response;
                 } elsif ( $digits_submitted != 3 ) {
                     # need to capture pages for this
                     die "not enough digits ($digits_submitted)";
                 } else {
                     $response->code( RC_FOUND );
-                    $response->header( 'Location' => $pages{accounts}->{url});
+                    $response->header( 'Location' => $pages->{accounts}->{url});
+                    return $response;
                 }
             } else {
+                # just return the login-2 page
                 $response = $self->SUPER::request( $response, 'BankOfIreland' );
+                return $response;
             }
-        } elsif ( $request->uri eq $pages{manageaccounts}->{url} and
-                  $request->method eq 'POST' and
-                  $self->get_param( 'form:managePayees', \@args )) {
+        }
+    }
+
+    if ( !Test::MockBank->globalstate( 'loggedin' )) {
+        $response->code( RC_FOUND );
+        $response->header( 'Location' => $pages->{expired}->{url} );
+        Test::MockBank->globalstate( 'loggedin', 0 );
+        return $response;
+    } elsif ( Test::MockBank->globalstate('loggedin') == 1 ) {
+        print STDERR "Can't happen\n" if $ENV{DEBUG};
+        die;
+    } else {
+        if ( $url eq $pages->{manageaccounts}->{url} and
+             $request->method eq 'POST' and
+             $self->get_param( 'form:managePayees', \@args )) {
             $response->code( RC_FOUND );
-            $response->header( 'Location' => $pages{managepayees}->{url} );
+            $response->header( 'Location' => $pages->{managepayees}->{url} );
             return $response;
         } else {
             # this is how they should all work...
             my ( $page ) = $request->uri =~ m@/(\w+)\?@;
-            my $execution = $self->get_param( 'execution', \@args );
             my ( $e, $s ) = $execution =~ /e(\d+)s(\d+)/;
 
             if ( $page eq 'moneyTransfer' ) {

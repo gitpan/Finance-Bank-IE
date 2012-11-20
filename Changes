@@ -1,3 +1,7 @@
+0.28
+	* fix reported bug with running on Windows (using ? in filenames)
+	* refactor BoI module somewhat to reuse code
+
 0.27
     * Date::Parse on OpenBSD apparently doesn't parse 01/01/1970.  
       Removed the str2time call completely as it was overkill.

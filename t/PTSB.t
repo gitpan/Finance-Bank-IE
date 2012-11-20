@@ -6,10 +6,13 @@ use Test::More tests => 36;
 
 use Cwd;
 use Test::MockModule;
+use Data::Dumper;
 
 use lib qw( t/lib );
 
 use Test::Util;
+
+$| = 1;
 
 my $MODULE_UNDER_TEST;
 BEGIN {
@@ -202,7 +205,8 @@ SKIP:
     Test::MockBank->fail_on_iterations( 5 );
     $beneficiaries = Finance::Bank::IE::PTSB->list_beneficiaries( $testaccount,
                                                                   $config );
-    ok( !$beneficiaries, "can handle page-load failure (list_beneficiaries 1)");
+    ok( !$beneficiaries, "can handle page-load failure (list_beneficiaries 1)")
+        or diag Dumper($beneficiaries);
 
     Finance::Bank::IE::PTSB->reset and
         Test::MockBank->globalstate( 'loggedin', 0 );
@@ -248,6 +252,6 @@ SKIP:
 # utterly bogus URL (mainly for coverage)
 Test::MockBank->globalstate( 'loggedin', 0 );
 my $return = Finance::Bank::IE::PTSB->_get( 'breakit', $config );
-ok( !defined( $return ), "bogus url" );
+ok( !defined( $return ), "bogus url" ) or diag "expected undef, got $return";
 $return = Finance::Bank::IE::PTSB->_get( 'breakit' );
-ok( !defined( $return ), "bogus url" ) or diag $return;
+ok( !defined( $return ), "bogus url" ) or diag "expected undef, got $return";

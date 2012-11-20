@@ -34,35 +34,35 @@ data/PTSB/Account.aspx					 Permanent TSB account summary page
 data/PTSB/DoLogOff.aspx					 Permanent TSB logged out page
 data/PTSB/Login2.aspx					 Permanent TSB PIN entry page
 data/PTSB/Incorrect1.aspx				 Permanent TSB missing credentials page
-data/PTSB/StateMini.aspx?ref=0			 Permanent TSB mini statement page
-data/PTSB/login.aspx?ref5				 Permanent TSB login page
+data/PTSB/StateMini.aspx_ref=0			 Permanent TSB mini statement page
+data/PTSB/login.aspx_ref5				 Permanent TSB login page
 data/PTSB/PayAndTransfer.aspx
 data/PTSB/TransfereeManage.aspx
-data/PTSB/TransfereeManage.aspx?ddlPaymentType=1
-data/PTSB/TransfereeManage.aspx?ddlPaymentType=2
-data/PTSB/TransfereeManage.aspx?ddlPaymentType=3
+data/PTSB/TransfereeManage.aspx_ddlPaymentType=1
+data/PTSB/TransfereeManage.aspx_ddlPaymentType=2
+data/PTSB/TransfereeManage.aspx_ddlPaymentType=3
 
 data/MBNA/index.html							   MBNA home page
-data/MBNA/WelcomeScreen?country=uk&language=en&org=1 MBNA login p1
+data/MBNA/WelcomeScreen_country=uk&language=en&org=1 MBNA login p1
 data/MBNA/LoginProcess							   MBNA login p2
-data/MBNA/RegisteredAccountsScreen?login=true	   MBNA successful login
-data/MBNA/AccountSnapshotScreen?acctID=PMMQNI	   MBNA account 1 detail
-data/MBNA/AccountSnapshotScreen?acctID=YTNCZD	   MBNA account 2 detail
+data/MBNA/RegisteredAccountsScreen_login=true	   MBNA successful login
+data/MBNA/AccountSnapshotScreen_acctID=PMMQNI	   MBNA account 1 detail
+data/MBNA/AccountSnapshotScreen_acctID=YTNCZD	   MBNA account 2 detail
 
 # Bank of Ireland test files
-data/BankOfIreland/accountSummary?execution=e2s1   BoI account summary page
-data/BankOfIreland/authentication?execution=e1s1   BoI Login 1
-data/BankOfIreland/authentication?execution=e1s2   BoI Login 2
-data/BankOfIreland/authentication?execution=e1s3   BoI app advert
-data/BankOfIreland/authentication?execution=e1s4   BoI login failed
-data/BankOfIreland/manageAccounts?execution=e5s1   BoI manage accounts
-data/BankOfIreland/managePayees?execution=e6s1     BoI mange payees
-data/BankOfIreland/statements?execution=e1s1       BoI account statement
-data/BankOfIreland/moneyTransfer?execution=e7s1    BoI Funds Transfer 1
-data/BankOfIreland/moneyTransfer?execution=e7s2    BoI Funds Transfer 2
-data/BankOfIreland/moneyTransfer?execution=e7s3    BoI Funds Transfer 3
-data/BankOfIreland/moneyTransfer?execution=e7s4    BoI Funds Transfer 4
-data/BankOfIreland/moneyTransfer?execution=e7s5    BoI Funds Transfer 5
+data/BankOfIreland/accountSummary_execution=e2s1   BoI account summary page
+data/BankOfIreland/authentication_execution=e1s1   BoI Login 1
+data/BankOfIreland/authentication_execution=e1s2   BoI Login 2
+data/BankOfIreland/authentication_execution=e1s3   BoI app advert
+data/BankOfIreland/authentication_execution=e1s4   BoI login failed
+data/BankOfIreland/manageAccounts_execution=e5s1   BoI manage accounts
+data/BankOfIreland/managePayees_execution=e6s1     BoI mange payees
+data/BankOfIreland/statements_execution=e1s1       BoI account statement
+data/BankOfIreland/moneyTransfer_execution=e7s1    BoI Funds Transfer 1
+data/BankOfIreland/moneyTransfer_execution=e7s2    BoI Funds Transfer 2
+data/BankOfIreland/moneyTransfer_execution=e7s3    BoI Funds Transfer 3
+data/BankOfIreland/moneyTransfer_execution=e7s4    BoI Funds Transfer 4
+data/BankOfIreland/moneyTransfer_execution=e7s5    BoI Funds Transfer 5
 data/BankOfIreland/unscrubbed                      BoI unscrubbed
 data/BankOfIreland/sessionExpired                  BoI Timeout
 META.json                                Module JSON meta-data (added by MakeMaker)

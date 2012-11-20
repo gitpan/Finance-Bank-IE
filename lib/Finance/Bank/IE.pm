@@ -14,12 +14,13 @@ package Finance::Bank::IE;
 
 use File::Path;
 use WWW::Mechanize;
+use HTTP::Status qw(:constants);
 use Carp qw( confess );
 
 use strict;
 use warnings;
 
-our $VERSION = "0.27";
+our $VERSION = "0.28";
 
 # Class state. Each of these is keyed by the hash value of $self to
 # provide individual class-level variables. Ideally I'd just hack the
@@ -140,6 +141,9 @@ sub _save_page {
         $filename .= '?' . join( '&', @params );
     }
 
+    # Keep windows happy
+    $filename =~ s/\?/_/g;
+
     my $path = 'data/savedpages/' . $self->_get_class();
     mkpath( [ $path ], 0, 0700 );
     $filename = "$path/$filename";
@@ -220,6 +224,138 @@ sub _dprintf {
     if ( $ENV{DEBUG}) {
         printf STDERR "[%s] ", ref( $self ) || $self || "DEBUG";
         printf STDERR @_ if $ENV{DEBUG};
+    }
+}
+
+=item * $self->_pages()
+
+ Return a hashref of URLs & sentinel text to allow each page to be requested or identified. Format of each entry is a hash, 'url' => 'http://...', 'sentinel' => 'sentinel text'. Sentinel text will be used as-is in a regular expression match on the page content.
+
+=cut
+sub _pages {
+    my $self = shift;
+    confess "_pages() not implemented for " . ref($self);
+}
+
+=item * $self->_identify_page()
+
+ Identify the current page among C<$self->_pages()> hashref. Returns C<UNKNOWN> if no match is found.
+
+=cut
+sub _identify_page {
+    my $self = shift;
+    my $content = shift || $self->_agent()->content();
+    my $page;
+
+    my $pages = $self->_pages();
+
+    for my $pagekey ( keys %{$pages} ) {
+        my $sentinel = $pages->{$pagekey}->{sentinel};
+        if ( !$sentinel ) {
+            confess( "sentinel unset for $pagekey" );
+        }
+        if ( $content =~ /$sentinel/s ) {
+            $page = $pagekey;
+            last;
+        }
+    }
+
+    if ( !defined( $page )) {
+        $page = "UNKNOWN";
+    }
+
+    return $page;
+}
+
+=item * $self->_get( url, [config] )
+
+ Get the specified URL, dealing with login if necessary along the way.
+
+=cut
+
+sub _get {
+    my $self = shift;
+    my $url = shift;
+    my $confref = shift;
+
+    my $pages = $self->_pages();
+
+    if ( $confref ) {
+        $self->cached_config( $confref );
+    }
+
+    my $res;
+    if ( $self->_agent()->find_link( url => $url )) {
+        $self->_dprintf( " following $url\n" );
+        $res = $self->_agent()->follow_link( url => $url );
+    } else {
+        $self->_dprintf( " getting $url\n" );
+        $res = $self->_agent()->get( $url );
+    }
+
+    # if we get the login page then treat it as a 401
+    my $loop = 0;
+    my $expired = 0;
+  NEXTPAGE:
+    if ( $res->is_success ) {
+        my $page = $self->_identify_page();
+        if ( $page eq 'UNKNOWN' ) {
+            $self->_dprintf( " Looking for URL '$url', got unknown page\n" );
+            $page = "";
+        } else {
+            $self->_dprintf( " Looking for URL '$url', got '$page'\n" );
+        }
+
+        $self->_save_page();
+        confess "unrecognised page" unless $page;
+
+        if ( $page eq 'termsandconds' ) {
+            die "Terms & Conditions page detected. Please log in manually to accept.";
+        }
+
+        if ( $page eq 'expired' or $page eq 'accessDenied' ) {
+            if ( !$expired ) {
+                $self->_dprintf( "  session expired, logging in again\n" );
+                $res = $self->_agent()->get($self->_pages->{login}->{url});
+                $expired = 1;
+                goto NEXTPAGE;
+            } else {
+                $self->_dprintf( " session expiry looping, bailing to avoid lockout\n" );
+                $res->code( HTTP_INTERNAL_SERVER_ERROR )
+            }
+        } elsif ( $page eq 'login' ) {
+            if ( $loop != 0 ) {
+                $self->_dprintf( " login appears to have looped, bailing to avoid lockout\n" );
+                $res->code( HTTP_UNAUTHORIZED );
+            } else {
+                # do the login
+                $self->_dprintf( " login step 1\n" );
+                $res = $self->_submit_first_login_page( $confref );
+                $loop = 1;
+                goto NEXTPAGE;
+            }
+        } elsif ( $page eq 'login2' ) {
+            $self->_dprintf( " login 2 of 2\n" );
+            $res = $self->_submit_second_login_page( $confref );
+            $loop = 2;
+            goto NEXTPAGE;
+        }
+
+        # just assume we're not yet on the page we're looking for
+        if ( $self->_pages->{$page}->{url} ne $url ) {
+            $self->_dprintf( " now chasing URL '$url'\n" );
+            $self->_save_page();
+            $res = $self->_agent()->get( $url );
+        }
+    }
+
+    $self->_save_page();
+
+    if ( $res->is_success ) {
+        return $self->_agent()->content();
+    } else {
+        $self->_dprintf( "  page fetch failed with " . $res->code() . "\n" );
+        return undef;
     }
 }
 

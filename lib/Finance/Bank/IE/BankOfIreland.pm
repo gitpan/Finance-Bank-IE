@@ -1,9 +1,3 @@
-#!/usr/bin/perl
-# -*-CPerl-*-
-# Banking 365ish
-#
-package Finance::Bank::IE::BankOfIreland;
-
 =head1 NAME
 
 Finance::Bank::IE::BankOfIreland - Interface to Bank of Ireland online banking
@@ -38,11 +32,13 @@ Note that all functions are set up to act as methods (i.e. they all need to be i
 =over
 
 =cut
+package Finance::Bank::IE::BankOfIreland;
+
 
 use strict;
 use warnings;
 
-our $VERSION = "0.27";
+our $VERSION = "0.28";
 
 use base qw( Finance::Bank::IE );
 use POSIX;
@@ -81,32 +77,41 @@ my $BASEURL = "https://www.365online.com/";
 
 my %pages = (
              login => {
-                       url => 'https://www.365online.com/online365/spring/authentication?execution=e1s1',
-                       sentinel => 'Secure Login - Step 1 of 2',
+                       url => 'https://www.365online.com/online365/spring/authentication',
+                       sentinel => 'Login.*Step 1 of 2',
                       },
              login2 => {
-                       url => 'https://www.365online.com/online365/spring/authentication?execution=e1s2',
-                       sentinel => 'Secure Login - Step 2 of 2',
+                       url => 'https://www.365online.com/online365/spring/authentication',
+                       sentinel => 'Login.*Step 2 of 2',
                       },
+             accessDenied => {
+                              url => 'https://www.365online.com/online365/spring/accessDenied',
+                              sentinel => '<h1>Access Denied',
+                             },
              badcreds => {
-                          url => 'https://www.365online.com/online365/spring/authentication?execution=e1s4',
+                          url => 'https://www.365online.com/online365/spring/authentication',
                           sentinel => 'Your login details are incorrect, please try again',
                          },
              expired => {
                          url => 'https://www.365online.com/online365/spring/sessionExpired',
                          sentinel => 'The system has logged you out',
                         },
-             appadvert => {
-                          url => 'https://www.365online.com/online365/spring/accountSummary?execution=e1s3',
-                          sentinel => 'Mobile Banking App',
-                          },
+             # generic interstitial
+             interstitial => {
+                              url => 'not important',
+                              sentinel => 'Continue to 365 Home',
+                             },
+             termsandconds => {
+                               url => 'not important',
+                               sentinel => '<h1>Terms and Conditions</h1>',
+                              },
              accounts => {
                           url => 'https://www.365online.com/online365/spring/accountSummary?execution=e2s1',
-                          sentinel => 'Your Accounts</h2>',
+                          sentinel => '>Your Accounts\b',
                          },
              statements => {
                             url => 'https://www.365online.com/online365/spring/statements?execution=e1s1',
-                            sentinel => 'Recent Transactions</h2>',
+                            sentinel => 'Recent Transactions',
                            },
              moneyTransfer => {
                                url => 'https://www.365online.com/online365/spring/moneyTransfer?execution=e7s1',
@@ -130,90 +135,108 @@ use File::Path;
 use Data::Dumper;
 
 sub _pages {
-    return %pages;
+    return \%pages;
 }
 
-=item login_dance( $config );
+# =item * login_dance( $config );
 
-Logs in or refreshes the current session. The config parameter is a hash reference which is cached the first time it is used, so can be omitted thereafter. The contents of the hash are the login details for your 365 Online account:
+# Logs in or refreshes the current session. The config parameter is a hash reference which is cached the first time it is used, so can be omitted thereafter. The contents of the hash are the login details for your 365 Online account:
 
-=over
+# =over
 
-=item * user: your six-digit BoI user ID
+# =item * user: your six-digit BoI user ID
 
-=item * pin: your six-digit PIN
+# =item * pin: your six-digit PIN
 
-=item * contact: the last four digits of your contact number
+# =item * contact: the last four digits of your contact number
 
-=item * dob: your date of birth in DD/MM/YYYY format
+# =item * dob: your date of birth in DD/MM/YYYY format
 
-=back
+# =back
 
-No validation is currently done on the format of the config items. The function returns true or false. Note that this function should rarely need to be directly used as it's invoked by the other functions as a first step.
+# No validation is currently done on the format of the config items. The function returns true or false. Note that this function should rarely need to be directly used as it's invoked by the other functions as a first step.
 
-=cut
+# =cut
+# sub login_dance {
+#     my $self = shift;
+#     my $confref = shift;
 
-sub login_dance {
+#     confess();
+
+#     $confref ||= $self->cached_config();
+
+#     for my $required ( "user", "pin", "contact", "dob" ) {
+#         if ( !defined( $confref->{$required} )) {
+#             $self->_dprintf( "$required not specified\n" );
+#             return;
+#         }
+#     }
+
+#     $self->cached_config( $confref );
+
+#     if ( !$self->_get( $pages{login}->{url}, $confref )) {
+#         croak( "Failed to get login page." );
+#     }
+
+#     # TODO check sentinel & form name
+#     my $form = $self->_agent()->current_form();
+#     $self->_agent()->field( "form:userId", $confref->{user} );
+#     $self->_set_creds_fields( $confref );
+#     my $res = $self->_agent()->submit_form();
+#     $self->_identify_page();
+#     $self->_save_page();
+
+#     if ( !$res->is_success ) {
+#         croak( "Failed to submit login form" );
+#     }
+
+#     $self->_set_creds_fields( $confref );
+#     $res = $self->_agent()->submit_form();
+#     $self->_identify_page();
+#     $self->_save_page();
+
+#     if ( !$res->is_success ) {
+#         croak( "Failed to submit login form" );
+#     }
+
+#     if ( $res->content() =~ /$pages{badcreds}->{sentinel}/s ) {
+#         croak "Your login details are incorrect";
+#     } elsif ( $res->content() =~ /$pages{login}->{sentinel}/s ) {
+#         croak( "Looping, bailing out to avoid lockout\n" );
+#     }
+
+#     # one other fail string: You did not enter the 3 requested digits of your PIN!
+
+#     # GAH INTERSTITIALS
+#     if ( $self->_identify_page eq 'interstitial' ) {
+#         $self->_agent()->field( "form:continue", "form:continue" );
+#         $res = $self->_agent()->submit_form();
+#         $self->_identify_page();
+#         $self->_save_page();
+#     }
+
+#     return 1;
+# }
+
+sub _submit_first_login_page {
     my $self = shift;
-    my $confref = shift;
+    my $confref = shift||$self->cached_config();
 
-    $confref ||= $self->cached_config();
-
-    for my $required ( "user", "pin", "contact", "dob" ) {
-        if ( !defined( $confref->{$required} )) {
-            $self->_dprintf( "$required not specified\n" );
-            return;
-        }
-    }
-
-    $self->cached_config( $confref );
-
-    my $res =
-      $self->_agent()->get( $pages{login}->{url} );
-    $self->_save_page();
-
-    if ( !$res->is_success ) {
-        croak( "Failed to get login page." );
-    }
-
-    # TODO check sentinel & form name
     my $form = $self->_agent()->current_form();
     $self->_agent()->field( "form:userId", $confref->{user} );
     $self->_set_creds_fields( $confref );
-    $res = $self->_agent()->submit_form();
-    $self->_save_page();
-
-    if ( !$res->is_success ) {
-        croak( "Failed to submit login form" );
-    }
-
-    $self->_set_creds_fields( $confref );
-    $res = $self->_agent()->submit_form();
-    $self->_save_page();
-
-    if ( !$res->is_success ) {
-        croak( "Failed to submit login form" );
-    }
-
-    if ( $res->content() =~ /$pages{badcreds}->{sentinel}/s ) {
-        croak "Your login details are incorrect";
-    } elsif ( $res->content() =~ /$pages{login}->{sentinel}/s ) {
-        croak( "Looping, bailing out to avoid lockout\n" );
-    }
-
-    # one other fail string: You did not enter the 3 requested digits of your PIN!
-
-    # GAH INTERSTITIALS
-    if ( $self->_agent()->content() =~ /$pages{appadvert}->{sentinel}/s ) {
-        $self->_agent()->field( "form:continue", "form:continue" );
-        $res = $self->_agent()->submit_form();
-        $self->_save_page();
-    }
-
-    return 1;
+    return $self->_agent()->submit_form();
 }
 
-=item $self->check_balance()
+sub _submit_second_login_page {
+    my $self = shift;
+    my $confref = shift||$self->cached_config();
+
+    $self->_set_creds_fields( $confref );
+    return $self->_agent()->submit_form();
+}
+
+=item * $self->check_balance()
 
 Fetch all account balances from the account summary page. Returns an array of Finance::Bank::IE::BankOfIreland::Account objects.
 
@@ -224,7 +247,7 @@ sub check_balance {
     my $confref = shift;
 
     $confref ||= $self->cached_config();
-    $self->login_dance( $confref );
+    $self->_get( $self->_pages->{accounts}->{url}, $confref );
 
     if ( $self->_agent()->content() !~ /$pages{accounts}->{sentinel}/s ) {
         croak( "Failed to get account summary page" );
@@ -269,7 +292,7 @@ sub check_balance {
     return @accounts;
 }
 
-=item *$self->account_details( account [,config] )
+=item * $self->account_details( account [,config] )
 
  Return transaction details from the specified account
 
@@ -281,19 +304,15 @@ sub account_details {
     my ( @headings, @details );
 
     $confref ||= $self->cached_config();
-    $self->login_dance( $confref );
 
-    my $res =
-      $self->_agent()->get( $pages{statements}->{url} );
-    $self->_save_page();
+    my $content = $self->_get( $pages{statements}->{url}, $confref );
 
-    if ( !$res->is_success ) {
+    if ( !$content) {
         croak( "Failed to get account summary page" );
     }
 
     # account selector
     my $error = 'account not found';
-    my $content = $self->_agent->content();
     my $parser = new HTML::TokeParser( \$content );
 
     while ( my $tag = $parser->get_tag( "select" )) {
@@ -303,6 +322,7 @@ sub account_details {
                 my $accountname = $parser->get_trimmed_text( "/option" );
                 next if $accountname =~ /Select Account/;
                 my ( $nick, $number ) = split( /\s*~\s*/, $accountname );
+                $self->_dprintf( "Found account '$nick' = '$number'\n" );
                 if ( $account eq $nick or $account eq $number or
                     $account eq '~'.$number ) {
                     if ( $self->_streq( $optiontag->[1]{selected}, "selected" )) {
@@ -376,7 +396,6 @@ sub list_beneficiaries {
     $self->_dprintf( "Fetching beneficiaries for %s\n", ref $account_from ? $account_from->{nick} : $account_from );
 
     $confref ||= $self->cached_config();
-    $self->login_dance( $confref );
 
     # allow passing in of account objects
     if ( ref $account_from eq "Finance::Bank::IE::BankOfIreland::Account" ) {
@@ -384,15 +403,16 @@ sub list_beneficiaries {
     }
 
     my $res =
-      $self->_agent()->get( $pages{manageaccounts}->{url} );
+      $self->_get( $pages{manageaccounts}->{url}, $confref );
     $self->_save_page();
-    if ( !$res->is_success ) {
+    if ( !$res ) {
         croak( "Failed to get " . $pages{manageaccounts}->{url} );
     }
 
     # now we have to pretend to be javascript again.
     $self->_agent()->field( "form:managePayees", "form:managePayees" );
     $res = $self->_agent()->submit_form();
+    $self->_identify_page();
     $self->_save_page();
 
     if ( !$res->is_success ) {
@@ -462,8 +482,6 @@ sub funds_transfer {
                      ref $account_to ? $account_to->{nick} : $account_to );
 
     $confref ||= $self->cached_config();
-    # don't bother, list_beneficiaries will do this
-    #$self->login_dance( $confref );
 
     # allow passing in of account objects
     if ( ref $account_from eq "Finance::Bank::IE::BankOfIreland::Account" ) {
@@ -507,6 +525,7 @@ sub funds_transfer {
     # So, testing the bit I can test.
     $self->_agent()->field( "form:domesticPayment", "form:domesticPayment" );
     $res = $self->_agent()->submit_form();
+    $self->_identify_page();
     $self->_save_page();
     croak( 'not on Origin page' ) unless $self->_agent()->content() =~ m@Domestic Transfer</h1>@;
 
@@ -516,6 +535,7 @@ sub funds_transfer {
 
     # click on the continue button
     $res = $self->_agent()->submit_form( button => 'form:formActions:continue' );
+    $self->_identify_page();
     $self->_save_page();
     croak( 'not on Details page' ) unless $self->_agent()->content() =~ m@Enter Details</h2>@;
 
@@ -556,6 +576,7 @@ sub funds_transfer {
                                                   },
                                         button => 'form:formActions:continue',
                                        );
+    $self->_identify_page();
     # also, the destination account number appears in full on this page.
     $self->_save_page();
     croak( 'not on PIN page' ) unless $self->_agent()->content() =~ m@Enter your PIN</h2>@;
@@ -563,6 +584,7 @@ sub funds_transfer {
     $self->_set_creds_fields( $confref );
 
     $res = $self->_agent()->submit_form( button => 'form:formActions:continue' );
+    $self->_identify_page();
     $self->_save_page();
     croak( 'not on Confirmation page' ) unless $self->_agent()->content() =~ m@Confirmation</h2>@s;
 
@@ -627,9 +649,9 @@ sub _scrub_page {
     my $output = "";
 
     my $parser = new HTML::TokeParser( \$content );
-
+    my $page = $self->_identify_page( $content );
     my $payee_acct = 0;
-    my $page;
+
     while ( my $token = $parser->get_token()) {
         my $token_string = $token->[0] eq 'T' ? $token->[1] : $token->[-1];
 
@@ -640,14 +662,17 @@ sub _scrub_page {
 
         if ( $token->[0] eq 'S' ) {
             if ( $token->[1] eq 'h2' ) {
-                $page = "";
+                my $tpage = "";
                 while ( my $h2_token = $parser->get_token()) {
                     my $h2_string = $h2_token->[0] eq 'T' ? $h2_token->[1] : $h2_token->[-1];
                     $token_string .= $h2_string;
                     if ( $h2_token->[0] eq 'E' and $h2_token->[1] eq 'h2' ) {
                         last;
                     }
-                    $page .= $h2_string;
+                    $tpage .= $h2_string;
+                }
+                if ( $tpage ne $page ) {
+                    $page = $tpage;
                 }
 
                 # XXX these should use sentinels from %pages
@@ -675,7 +700,8 @@ sub _scrub_page {
             }
 
             if ( $token->[1] eq 'span' ) {
-                if ( $self->_streq( $token->[2]{class}, "acc_name" )) {
+                if (( $token->[2]{id}||"") =~ /:detailsColumn$/ or
+                    ( $self->_streq( $token->[2]{class}, "acc_name" ))) {
                     while ( my $account_token = $parser->get_token()) {
                         if ( $account_token->[0] eq 'T' ) {
                             $token_string .= "Nickname";
@@ -749,7 +775,11 @@ sub _scrub_page {
                         if ( $val ne 'From Account..' and
                              $val ne 'defaultItem' ) {
                             $added_nickname++;
-                            $string .= "nick $added_nickname ~ $val";
+                            if ( $added_nickname == 1 ) {
+                                $string .= "Nickname ~ 9999";
+                            } else {
+                                $string .= "nick $added_nickname ~ $val";
+                            }
                         } else {
                             $string .= $parser->get_trimmed_text();
                         }
