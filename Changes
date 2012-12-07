@@ -1,3 +1,6 @@
+0.28.1
+	* disable save_pages tests entirely until I figure out why they're such trouble
+
 0.28
 	* fix reported bug with running on Windows (using ? in filenames)
 	* refactor BoI module somewhat to reuse code
