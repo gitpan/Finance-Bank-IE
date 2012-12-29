@@ -4,7 +4,7 @@ Finance::Bank::IE - shared functions for the Finance::Bank::IE module tree
 
 =head1 DESCRIPTION
 
-This module implements a few shared functions for Finance::Bank::IE::*
+This module implements shared functions for Finance::Bank::IE::*
 
 =over
 
@@ -20,7 +20,7 @@ use Carp qw( confess );
 use strict;
 use warnings;
 
-our $VERSION = "0.28";
+our $VERSION = "0.29";
 
 # Class state. Each of these is keyed by the hash value of $self to
 # provide individual class-level variables. Ideally I'd just hack the

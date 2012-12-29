@@ -14,7 +14,7 @@ package Finance::Bank::IE::PTSB;
 
 use base qw( Finance::Bank::IE );
 
-our $VERSION = "0.28";
+our $VERSION = "0.29";
 
 use warnings;
 use strict;
@@ -643,7 +643,7 @@ sub _add_event_fields {
 
     # these get added by javascript on the page
     my $form = $self->_agent()->current_form();
-    for my $name qw( __EVENTTARGET __EVENTARGUMENT ) {
+    for my $name (qw( __EVENTTARGET __EVENTARGUMENT )) {
         if ( my $input = $form->find_input( $name )) {
             $input->readonly( 0 );
         } else {
