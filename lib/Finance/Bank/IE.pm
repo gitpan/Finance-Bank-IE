@@ -20,7 +20,7 @@ use Carp qw( confess );
 use strict;
 use warnings;
 
-our $VERSION = "0.29";
+our $VERSION = "0.30";
 
 # Class state. Each of these is keyed by the hash value of $self to
 # provide individual class-level variables. Ideally I'd just hack the
@@ -132,6 +132,10 @@ sub _save_page {
         $filename = "index.html";
     }
 
+    if ( $self->_identify_page() ne 'UNKNOWN' ) {
+        $filename = $self->_identify_page();
+    }
+
     # embed the code if it's a failed page
     if ( !$res->is_success()) {
         $filename = $res->code() . "-$filename";
@@ -152,7 +156,7 @@ sub _save_page {
 
     # we'd like to anonymize this content before saving it.
     my $content = $self->_agent()->content();
-
+g
     $content = $self->_scrub_page( $content );
 
     my $error = 0;
@@ -234,7 +238,7 @@ sub _dprintf {
 =cut
 sub _pages {
     my $self = shift;
-    confess "_pages() not implemented for " . ref($self);
+    confess "_pages() not implemented for " . (ref($self) || $self);
 }
 
 =item * $self->_identify_page()
@@ -278,6 +282,8 @@ sub _get {
     my $url = shift;
     my $confref = shift;
 
+    confess "No URL specified" unless $url;
+
     my $pages = $self->_pages();
 
     if ( $confref ) {
@@ -313,10 +319,15 @@ sub _get {
             die "Terms & Conditions page detected. Please log in manually to accept.";
         }
 
+        if ( $page eq 'sitedown' ) {
+            $res->code( HTTP_INTERNAL_SERVER_ERROR );
+            die "Site appears to be offline for maintenance.";
+        }
+
         if ( $page eq 'expired' or $page eq 'accessDenied' ) {
             if ( !$expired ) {
                 $self->_dprintf( "  session expired, logging in again\n" );
-                $res = $self->_agent()->get($self->_pages->{login}->{url});
+                $res = $self->_agent()->get($self->_pages()->{login}->{url});
                 $expired = 1;
                 goto NEXTPAGE;
             } else {
@@ -336,16 +347,21 @@ sub _get {
             }
         } elsif ( $page eq 'login2' ) {
             $self->_dprintf( " login 2 of 2\n" );
-            $res = $self->_submit_second_login_page( $confref );
-            $loop = 2;
-            goto NEXTPAGE;
-        }
-
-        # just assume we're not yet on the page we're looking for
-        if ( $self->_pages->{$page}->{url} ne $url ) {
-            $self->_dprintf( " now chasing URL '$url'\n" );
-            $self->_save_page();
-            $res = $self->_agent()->get( $url );
+            if ( $loop ==2 ) {
+                $self->_dprintf( " login appears to be stuck on page 2, bailing\n" );
+                $res->code( HTTP_UNAUTHORIZED );
+            } else {
+                $res = $self->_submit_second_login_page( $confref );
+                $loop = 2;
+                goto NEXTPAGE;
+            }
+        } else {
+            # just assume we're not yet on the page we're looking for
+            if ( $self->_pages()->{$page}->{url} ne $url ) {
+                $self->_dprintf( " now chasing URL '$url'\n" );
+                $self->_save_page();
+                $res = $self->_agent()->get( $url );
+            }
         }
     }
 
@@ -386,6 +402,18 @@ T%0.02f
     }
 
     return $qif;
+}
+
+# starting the genericisation of this
+sub check_balance {
+    my $self = shift;
+    my $confref = shift;
+    $confref ||= $self->cached_config();
+
+    my $res = $self->_get( $self->_pages()->{accounts}->{url}, $confref );
+    return unless $res;
+
+    return $self->_parse_account_balance_page();
 }
 
 =back

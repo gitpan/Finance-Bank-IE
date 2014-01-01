@@ -38,7 +38,7 @@ package Finance::Bank::IE::BankOfIreland;
 use strict;
 use warnings;
 
-our $VERSION = "0.29";
+our $VERSION = "0.30";
 
 use base qw( Finance::Bank::IE );
 use POSIX;

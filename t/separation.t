@@ -6,12 +6,12 @@ use strict;
 use Test::More tests => 3 * 3;
 
 use Finance::Bank::IE::BankOfIreland;
-use Finance::Bank::IE::MBNA;
+use Finance::Bank::IE::AvantCard;
 use Finance::Bank::IE::PTSB;
 
 my @banks;
 push @banks, 'Finance::Bank::IE::BankOfIreland';
-push @banks, 'Finance::Bank::IE::MBNA';
+push @banks, 'Finance::Bank::IE::AvantCard';
 push @banks, 'Finance::Bank::IE::PTSB';
 
 my %agents;

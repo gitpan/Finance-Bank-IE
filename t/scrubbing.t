@@ -13,7 +13,6 @@ use Test::More tests => 1;
 use File::Find;
 
 use Finance::Bank::IE::BankOfIreland;
-use Finance::Bank::IE::MBNA;
 use Finance::Bank::IE::PTSB;
 
 my $pii_file = "data/pii.txt";

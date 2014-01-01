@@ -4,15 +4,15 @@ MANIFEST
 README
 META.yml                                 Module meta-data (added by MakeMaker)
 
+lib/Finance/Bank/IE/AIB.pm				 AIB support
+lib/Finance/Bank/IE/AvantCard.pm	 	 AvantCard support
 lib/Finance/Bank/IE/BankOfIreland.pm	 Bank of Ireland support
-lib/Finance/Bank/IE/MBNA.pm				 MBNA support
 lib/Finance/Bank/IE/PTSB.pm				 Permanent TSB support
 lib/Finance/Bank/IE.pm					 Superclass holding WWW::Mech object
 
 example.pl								 Sample code
 
 t/lib/Test/Util.pm						 Utilities to support testing
-t/MBNA.t								 Tests for MBNA.pm
 t/PTSB.t								 Tests for PTSB.pm
 t/BankOfIreland.t						 Tests for BankOfIreland.pm
 t/pod.t									 Tests for documentation
@@ -20,7 +20,6 @@ t/separation.t							 Tests for class separation
 t/scrubbing.t                            Tests for page scrubbing
 t/IE.t									 Tests for IE.pm superclass
 t/lib/Test/MockBank/BankOfIreland.pm	 Mock version of BoI website
-t/lib/Test/MockBank/MBNA.pm				 Mock version of MBNA website
 t/lib/Test/MockBank/PTSB.pm				 Mock version of PTSB website
 t/lib/Test/MockBank.pm					 Superclass of mock websites
 
@@ -41,13 +40,6 @@ data/PTSB/TransfereeManage.aspx
 data/PTSB/TransfereeManage.aspx_ddlPaymentType=1
 data/PTSB/TransfereeManage.aspx_ddlPaymentType=2
 data/PTSB/TransfereeManage.aspx_ddlPaymentType=3
-
-data/MBNA/index.html							   MBNA home page
-data/MBNA/WelcomeScreen_country=uk&language=en&org=1 MBNA login p1
-data/MBNA/LoginProcess							   MBNA login p2
-data/MBNA/RegisteredAccountsScreen_login=true	   MBNA successful login
-data/MBNA/AccountSnapshotScreen_acctID=PMMQNI	   MBNA account 1 detail
-data/MBNA/AccountSnapshotScreen_acctID=YTNCZD	   MBNA account 2 detail
 
 # Bank of Ireland test files
 data/BankOfIreland/accountSummary_execution=e2s1   BoI account summary page

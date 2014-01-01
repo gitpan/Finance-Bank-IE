@@ -14,7 +14,7 @@ package Finance::Bank::IE::PTSB;
 
 use base qw( Finance::Bank::IE );
 
-our $VERSION = "0.29";
+our $VERSION = "0.30";
 
 use warnings;
 use strict;
